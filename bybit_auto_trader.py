@@ -282,6 +282,11 @@ def load_regime():
     }
 
 def volatility_regime(klines, period=14):
+
+def is_trading_hours():
+    """Проверить что сейчас торговые часы (08:00-20:00 UTC)"""
+    hour = datetime.now(timezone.utc).hour
+    return 8 <= hour <= 20
     """Определить режим волатильности (ATR% vs средняя)"""
     if len(klines) < 50:
         return 'normal', 1.0
