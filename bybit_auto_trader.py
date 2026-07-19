@@ -612,9 +612,6 @@ def check_position_timeout(positions):
     else:
         return 'normal', atr_pct / avg_atr_pct if avg_atr_pct > 0 else 1.0
 
-if __name__ == '__main__':
-    main()
-
 def log_trade_extended(state, trade_data):
     """Расширенное логирование сделки"""
     regime = load_regime()
@@ -896,3 +893,5 @@ def manage_trailing_stop(positions, analysis):
                         save_state(state)
 
 
+if __name__ == '__main__':
+    main()
