@@ -254,23 +254,127 @@ def count_recent_losses(trades, limit=10):
     
     return losses
 
+def fallback_regime(klines):
+    """Fallback regime без Ollama (чисто математический: EMA + RSI + volume)"""
+    if not klines or len(klines) < 50:
+        return {"regime": "NEUTRAL", "confidence": 50, "allowed_direction": "WAIT", "risk_pct": 0.25}
+    
+    closes = [k['close'] for k in klines]
+    e21 = ema(closes, 21)
+    e55 = ema(closes, 55)
+    e200 = ema(closes, 200) if len(closes) >= 200 else None
+    r = rsi(closes)
+    vr = volume_ratio(klines)
+    adx_val, _, _ = adx(klines)
+    
+    score = 0
+    reasons = []
+    
+    # EMA тренд
+    if e21 and e55:
+        if e21 > e55:
+            score += 20
+            reasons.append("EMA21 > EMA55 (bullish)")
+        else:
+            score -= 20
+            reasons.append("EMA21 < EMA55 (bearish)")
+    
+    # EMA vs EMA200
+    if e55 and e200:
+        if e55 > e200:
+            score += 15
+            reasons.append("EMA55 > EMA200 (strong bullish)")
+        else:
+            score -= 15
+            reasons.append("EMA55 < EMA200 (strong bearish)")
+    
+    # RSI
+    if r:
+        if r > 70:
+            score -= 15
+            reasons.append(f"RSI {r:.0f} (overbought)")
+        elif r < 30:
+            score += 15
+            reasons.append(f"RSI {r:.0f} (oversold)")
+    
+    # Volume
+    if vr > 1.2:
+        score += 10
+        reasons.append(f"Volume {vr:.1f}x (high)")
+    elif vr < 0.8:
+        score -= 10
+        reasons.append(f"Volume {vr:.1f}x (low)")
+    
+    # ADX
+    if adx_val:
+        if adx_val > 25:
+            reasons.append(f"ADX {adx_val:.0f} (trend)")
+        else:
+            reasons.append(f"ADX {adx_val:.0f} (range)")
+    
+    # Определить режим
+    if score >= 30:
+        regime = "BULL"
+        allowed = "LONG"
+        risk = 0.50
+    elif score >= 10:
+        regime = "BULL"
+        allowed = "LONG"
+        risk = 0.25
+    elif score <= -30:
+        regime = "BEAR"
+        allowed = "SHORT"
+        risk = 0.50
+    elif score <= -10:
+        regime = "BEAR"
+        allowed = "SHORT"
+        risk = 0.25
+    else:
+        regime = "NEUTRAL"
+        allowed = "WAIT"
+        risk = 0.25
+    
+    confidence = min(90, 50 + abs(score))
+    
+    return {
+        "regime": regime,
+        "confidence": confidence,
+        "allowed_direction": allowed,
+        "risk_pct": risk,
+        "scores": {"fallback": score},
+        "reason": reasons,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "fallback": True
+    }
+
 def load_regime():
-    """Загрузить рыночный режим из market_regime.json"""
+    """Загрузить рыночный режим из market_regime.json или fallback"""
+    # Попробовать загрузить из файла
     if os.path.exists(REGIME_FILE):
         try:
             with open(REGIME_FILE, "r") as f:
-                return json.load(f)
-        except (IOError, OSError):
+                data = json.load(f)
+            # Проверить актуальность (не старше 6 часов)
+            if data.get("updated_at"):
+                try:
+                    updated = datetime.fromisoformat(data["updated_at"].replace("Z", "+00:00"))
+                    if updated.tzinfo is None:
+                        updated = updated.replace(tzinfo=timezone.utc)
+                    age_hours = (datetime.now(timezone.utc) - updated).total_seconds() / 3600
+                    if age_hours > 6:
+                        print("⚠️ Regime устарел (>6ч), используем fallback")
+                        return None  # Сигнал для fallback
+                    return data
+                except (ValueError, TypeError):
+                    pass
+            return data
+        except (IOError, OSError, json.JSONDecodeError):
             pass
-    return {
-        "regime": "NEUTRAL",
-        "confidence": 50,
-        "allowed_direction": "WAIT",
-        "risk_pct": 0.25,
-        "scores": {},
-        "reason": [],
-        "updated_at": None,
-    }
+    
+    # Fallback: математический расчёт
+    print("⚠️ Regime не найден, используем fallback")
+    klines = get_klines('15', 200)
+    return fallback_regime(klines)
 
 def volatility_regime(klines, period=14):
     """Определить режим волатильности (ATR% vs средняя)"""
