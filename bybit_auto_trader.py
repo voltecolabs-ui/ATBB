@@ -242,6 +242,24 @@ def count_recent_losses(trades, limit=10):
     
     return losses
 
+def load_regime():
+    """Загрузить рыночный режим из market_regime.json"""
+    if os.path.exists(REGIME_FILE):
+        try:
+            with open(REGIME_FILE, "r") as f:
+                return json.load(f)
+        except:
+            pass
+    return {
+        "regime": "NEUTRAL",
+        "confidence": 50,
+        "allowed_direction": "WAIT",
+        "risk_pct": 0.25,
+        "scores": {},
+        "reason": [],
+        "updated_at": None,
+    }
+
 def analyze():
     price = get_btc_price(); klines = get_klines('15', 200)
     funding = get_funding_rate(); oi = get_open_interest()
