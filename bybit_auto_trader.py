@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 HERMES_HOME = os.environ.get('HERMES_HOME', os.path.expanduser('~/.hermes/profiles/trader'))
 STATE_FILE = os.path.join(HERMES_HOME, 'workspace', 'trading_state.json')
+REGIME_FILE = os.path.join(HERMES_HOME, 'workspace', 'market_regime.json')
 
 env_file = os.path.join(HERMES_HOME, '.env')
 if os.path.exists(env_file):
