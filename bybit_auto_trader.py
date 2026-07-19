@@ -528,7 +528,9 @@ def main():
                     state["trades"].append({"time": datetime.now().isoformat(), "action": "CLOSE", "closed_pnl": p["pnl"], "reason": "position_timeout", "side": p["side"], "qty": p["size"], "price": p["mark"]})
                     closed_any = True
     if closed_any:
-        state['last_analysis'] = analysis; save_state(state); return
+        state['last_analysis'] = analysis; save_state(state)
+    
+    # Dashboard    dashboard = performance_dashboard(state)    if dashboard and dashboard['total_trades'] >= 5:        print_dashboard(dashboard); return
 
     conf = sig.get('confidence', 50)
     print(f"\\n🎯 Сигнал: {sig['action']} ({conf:.1f}%)")
@@ -553,6 +555,8 @@ def main():
                 state['trades'].append({'time': datetime.now().isoformat(), 'action': sig['action'], 'qty': qty, 'price': sig['entry'], 'sl': sig['sl'], 'tp': sig['tp']})
             else: print(f'❌ {result.get("retMsg")}')
     state['last_analysis'] = analysis; save_state(state)
+    
+    # Dashboard    dashboard = performance_dashboard(state)    if dashboard and dashboard['total_trades'] >= 5:        print_dashboard(dashboard)
 
 def manage_trailing_stop(positions, analysis):
     """Управление trailing stop для открытых позиций"""
