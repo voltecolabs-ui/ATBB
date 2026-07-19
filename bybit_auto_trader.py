@@ -305,6 +305,11 @@ def volatility_regime(klines, period=14):
     else:
         return 'normal', atr_pct / avg_atr_pct if avg_atr_pct > 0 else 1.0
 
+def is_trading_hours():
+    """Проверить что сейчас торговые часы (08:00-20:00 UTC)"""
+    hour = datetime.now(timezone.utc).hour
+    return 8 <= hour <= 20
+
 def analyze():
     price = get_btc_price(); klines = get_klines('15', 200)
     funding = get_funding_rate(); oi = get_open_interest()
