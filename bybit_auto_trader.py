@@ -44,6 +44,7 @@ RISK_RULES = {
     'max_daily_trades': 2,              # Макс. сделок в день
 }
 LOSS_COOLDOWN_HOURS = 4  # Пауза после серии убытков (часы)
+TRAIL_COOLDOWN = 60  # Минимальный интервал между обновлениями trailing (секунды)
 
 # Trailing Stop настройки
 
@@ -807,6 +808,13 @@ def manage_trailing_stop(positions, analysis):
         sl_dist = TRAILING['sl_distance_pct'] * multiplier
         tp_dist = TRAILING['tp_distance_pct'] * multiplier
         
+        # Rate limit: проверяем интервал между обновлениями
+        last_trail_key = f"last_trail_{p['entry']}"
+        state = load_state()
+        last_trail_time = state.get(last_trail_key, 0)
+        if time.time() - last_trail_time < TRAIL_COOLDOWN:
+            continue  # Пропустить, если прошло менее TRAIL_COOLDOWN секунд
+
         # === TRAILING SL ===
         if side == "Buy":
             new_sl = mark * (1 - sl_dist / 100)
