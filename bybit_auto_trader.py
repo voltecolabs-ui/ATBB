@@ -808,28 +808,26 @@ def manage_trailing_stop(positions, analysis):
         tp_dist = TRAILING['tp_distance_pct'] * multiplier
         
         # === TRAILING SL ===
-        if side == 'Buy':
+        if side == "Buy":
             new_sl = mark * (1 - sl_dist / 100)
         else:
             new_sl = mark * (1 + sl_dist / 100)
         
-        # Проверяем, что SL выше entry (для Buy) или ниже entry (для Sell)
-        # и что новый SL лучше текущего на минимум 0.1%
         current_sl = p.get("stopLoss", 0)
-        if (side == "Buy" and new_sl > entry and (current_sl == 0 or new_sl > current_sl * 1.001)) or (side == "Sell" and new_sl < entry and (current_sl == 0 or new_sl < current_sl * 0.999)):
-            result = set_trading_stop(sl=new_sl)
-            if result.get('retCode') == 0:
-                print(f"   🔒 Trailing SL: +{r_multiple:.1f}R → SL ${new_sl:,.2f} (dist: {sl_dist:.1f}%)")
+        sl_valid = (side == "Buy" and new_sl > entry and (current_sl == 0 or new_sl > current_sl * 1.001)) or \
+                   (side == "Sell" and new_sl < entry and (current_sl == 0 or new_sl < current_sl * 0.999))
         
         # === TRAILING TP ===
-        if side == 'Buy':
+        if side == "Buy":
             new_tp = mark * (1 + tp_dist / 100)
         else:
             new_tp = mark * (1 - tp_dist / 100)
         
-        result = set_trading_stop(tp=new_tp)
-        if result.get('retCode') == 0:
-            print(f"   🎯 Trailing TP: +{r_multiple:.1f}R → TP ${new_tp:,.2f} (dist: {tp_dist:.1f}%)")
+        # Один запрос API для SL + TP
+        if sl_valid:
+            result = set_trading_stop(sl=new_sl, tp=new_tp)
+            if result.get("retCode") == 0:
+                print(f"   🔒 Trailing: +{r_multiple:.1f}R → SL ${new_sl:,.2f} ({sl_dist:.1f}%) | TP ${new_tp:,.2f} ({tp_dist:.1f}%)")
         
         # === PARTIAL CLOSE ===
         # 1. При +1.7R → 35%
