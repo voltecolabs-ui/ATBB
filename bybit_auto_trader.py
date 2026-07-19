@@ -483,7 +483,7 @@ def main():
     analysis = analyze()
     if not analysis: print('❌ Ошибка анализа'); return
     positions = get_positions()
-    # Управление trailing stop\n    manage_trailing_stop(positions, analysis)
+    manage_trailing_stop(positions, analysis)
     balance = get_balance()
     if not balance: print('❌ Ошибка баланса'); return
     sig = signal(analysis, positions, state)
