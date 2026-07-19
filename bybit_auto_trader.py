@@ -46,20 +46,6 @@ RISK_RULES = {
 LOSS_COOLDOWN_HOURS = 4  # Пауза после серии убытков (часы)
 
 # Trailing Stop настройки
-TRAILING = {
-    'breakeven_trigger_r': 1.2,      # SL → entry при +1R
-    'breakeven_buffer_pct': 0.15,    # Buffer для комиссий (0.15%)
-    'partial_close_r': 1.7,          # Частичная фиксация при +1.5R
-    'partial_close_pct': 35,         # Закрыть 30% позиции
-    'partial_close_2_r': 3.0,        # Вторая фиксация при +3R
-    'partial_close_2_pct': 30,       # Закрыть ещё 30% позиции
-    'tight_trail_r': 2.0,            # Плотный trailing при +2R
-    'tight_trail_distance_atr': 1.0, # Расстояние trailing = 1x ATR
-    'vol_high_factor': 0.7,          # Коэффициент high volatility (-30%)
-    'vol_low_factor': 1.2,           # Коэффициент low volatility (+20%)
-    'trailing_tp_distance_pct': 2.0, # TP всегда выше цены на 2%
-    'trailing_tp_trigger_r': 1.5,    # Trailing TP активируется при +1.5R
-}
 
 def bybit_request(endpoint, params=None, data=None):
     if not BYBIT_API_KEY or not BYBIT_API_SECRET: return {'error': 'No API keys'}
@@ -845,3 +831,34 @@ def print_dashboard(dashboard):
     print(f"\n--- По причинам ---")
     for reason, stats in dashboard['by_reason'].items():
         print(f"  {reason}: {stats['count']} шт, PnL ${stats['pnl']:,.2f}")
+TRAILING = {
+    # Основные настройки
+    'enabled': True,
+    'activation_r': 1.0,               # Начинать трейлинг после +1.0R
+    
+    # SL/TP расстояния
+    'sl_distance_pct': 1.5,            # SL = цена - 1.5%
+    'tp_distance_pct': 2.0,            # TP = цена + 2.0%
+    
+    # Режим трейлинга
+    'trail_only_up': True,             # Двигать только вверх
+    
+    # Partial Close
+    'partial_close_r': 1.7,            # Частичная фиксация при +1.7R
+    'partial_close_pct': 35,           # Закрыть 35% позиции
+    'partial_close_2_r': 3.0,          # Вторая фиксация при +3R
+    'partial_close_2_pct': 30,         # Закрыть ещё 30%
+    
+    # Volatility
+    'vol_high_factor': 0.7,            # High vol: -30% размера
+    'vol_low_factor': 1.2,             # Low vol: +20% размера
+    
+    # Regime Multiplier
+    'regime_multiplier': {
+        'STRONG_BULL': 1.2,            # Даём тренду больше пространства
+        'BULL': 1.0,                   # Стандарт
+        'NEUTRAL': 0.6,                # Tighter в боковике
+        'BEAR': 1.0,                   # Стандарт
+        'STRONG_BEAR': 1.2,            # Больше пространства для шортов
+    },
+}
