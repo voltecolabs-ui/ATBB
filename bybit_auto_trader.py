@@ -57,6 +57,8 @@ TRAILING = {
     'tight_trail_distance_atr': 1.0, # Расстояние trailing = 1x ATR
     'vol_high_factor': 0.7,          # Коэффициент high volatility (-30%)
     'vol_low_factor': 1.2,           # Коэффициент low volatility (+20%)
+    'trailing_tp_distance_pct': 2.0, # TP всегда выше цены на 2%
+    'trailing_tp_trigger_r': 1.5,    # Trailing TP активируется при +1.5R
 }
 
 def bybit_request(endpoint, params=None, data=None):
