@@ -492,6 +492,28 @@ def main():
                     closed_any = True
     if closed_any:
         state['last_analysis'] = analysis; save_state(state); return
+
+        # 3. При +3R → вторая частичная фиксация (30% позиции)
+        elif r_multiple >= TRAILING["partial_close_2_r"]:
+            partial_key_2 = f"partial_closed_2_{p["entry"]}"
+            state = load_state()
+            if not state.get(partial_key_2):
+                partial_qty = round(p["size"] * TRAILING["partial_close_2_pct"] / 100, 3)
+                if partial_qty >= 0.001:
+                    close_result = close_position(side, partial_qty)
+                    if close_result.get("retCode") == 0:
+                        print(f"   📊 2-я фиксация: {TRAILING["partial_close_2_pct"]}% ({partial_qty} BTC) при +{r_multiple:.1f}R")
+                        state[partial_key_2] = True
+                        state["trades"].append({
+                            "time": datetime.now().isoformat(),
+                            "action": "PARTIAL_CLOSE_2",
+                            "closed_pnl": p["pnl"] * TRAILING["partial_close_2_pct"] / 100,
+                            "reason": f"partial_close_2_at_{r_multiple:.1f}R",
+                            "side": side,
+                            "qty": partial_qty,
+                            "price": mark
+                        })
+                        save_state(state)
     conf = sig.get('confidence', 50)
     print(f"\\n🎯 Сигнал: {sig['action']} ({conf:.1f}%)")
     if sig['action'] in ['LONG', 'SHORT'] and sig.get('confidence', 0) >= 70:
@@ -512,6 +534,28 @@ def main():
                 state['trades'].append({'time': datetime.now().isoformat(), 'action': sig['action'], 'qty': qty, 'price': sig['entry'], 'sl': sig['sl'], 'tp': sig['tp']})
             else: print(f'❌ {result.get("retMsg")}')
     state['last_analysis'] = analysis; save_state(state)
+
+        # 3. При +3R → вторая частичная фиксация (30% позиции)
+        elif r_multiple >= TRAILING["partial_close_2_r"]:
+            partial_key_2 = f"partial_closed_2_{p["entry"]}"
+            state = load_state()
+            if not state.get(partial_key_2):
+                partial_qty = round(p["size"] * TRAILING["partial_close_2_pct"] / 100, 3)
+                if partial_qty >= 0.001:
+                    close_result = close_position(side, partial_qty)
+                    if close_result.get("retCode") == 0:
+                        print(f"   📊 2-я фиксация: {TRAILING["partial_close_2_pct"]}% ({partial_qty} BTC) при +{r_multiple:.1f}R")
+                        state[partial_key_2] = True
+                        state["trades"].append({
+                            "time": datetime.now().isoformat(),
+                            "action": "PARTIAL_CLOSE_2",
+                            "closed_pnl": p["pnl"] * TRAILING["partial_close_2_pct"] / 100,
+                            "reason": f"partial_close_2_at_{r_multiple:.1f}R",
+                            "side": side,
+                            "qty": partial_qty,
+                            "price": mark
+                        })
+                        save_state(state)
 
 if __name__ == '__main__': main()
 
@@ -574,6 +618,28 @@ def manage_trailing_stop(positions, analysis):
                             'side': side,
                             'qty': partial_qty,
                             'price': mark
+                        })
+                        save_state(state)
+
+        # 3. При +3R → вторая частичная фиксация (30% позиции)
+        elif r_multiple >= TRAILING["partial_close_2_r"]:
+            partial_key_2 = f"partial_closed_2_{p["entry"]}"
+            state = load_state()
+            if not state.get(partial_key_2):
+                partial_qty = round(p["size"] * TRAILING["partial_close_2_pct"] / 100, 3)
+                if partial_qty >= 0.001:
+                    close_result = close_position(side, partial_qty)
+                    if close_result.get("retCode") == 0:
+                        print(f"   📊 2-я фиксация: {TRAILING["partial_close_2_pct"]}% ({partial_qty} BTC) при +{r_multiple:.1f}R")
+                        state[partial_key_2] = True
+                        state["trades"].append({
+                            "time": datetime.now().isoformat(),
+                            "action": "PARTIAL_CLOSE_2",
+                            "closed_pnl": p["pnl"] * TRAILING["partial_close_2_pct"] / 100,
+                            "reason": f"partial_close_2_at_{r_multiple:.1f}R",
+                            "side": side,
+                            "qty": partial_qty,
+                            "price": mark
                         })
                         save_state(state)
 
