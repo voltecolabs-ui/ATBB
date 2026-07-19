@@ -338,6 +338,10 @@ def signal(analysis, positions, state):
     if count_recent_losses(state.get('trades', [])) >= RISK_RULES['max_daily_losses']:
         return {'action': 'WAIT', 'reason': f'Серия убытков, пауза {LOSS_COOLDOWN_HOURS}ч'}
 
+    # === ФИЛЬТР ВРЕМЕНИ ===
+    if not is_trading_hours():
+        return {"action": "WAIT", "reason": "Вне торговых часов (08:00-20:00 UTC)"}
+
     # === РЕЖИМНЫЙ ФИЛЬТР ===
     regime = load_regime()
     if regime["allowed_direction"] not in ["LONG", "SHORT", "BOTH"]:
