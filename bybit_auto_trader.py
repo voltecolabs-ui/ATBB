@@ -814,7 +814,9 @@ def manage_trailing_stop(positions, analysis):
             new_sl = mark * (1 + sl_dist / 100)
         
         # Проверяем, что SL выше entry (для Buy) или ниже entry (для Sell)
-        if side == 'Buy' and new_sl > entry:
+        # и что новый SL лучше текущего на минимум 0.1%
+        current_sl = p.get("stopLoss", 0)
+        if (side == "Buy" and new_sl > entry and (current_sl == 0 or new_sl > current_sl * 1.001)) or (side == "Sell" and new_sl < entry and (current_sl == 0 or new_sl < current_sl * 0.999)):
             result = set_trading_stop(sl=new_sl)
             if result.get('retCode') == 0:
                 print(f"   🔒 Trailing SL: +{r_multiple:.1f}R → SL ${new_sl:,.2f} (dist: {sl_dist:.1f}%)")
