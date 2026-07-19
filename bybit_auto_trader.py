@@ -381,8 +381,8 @@ def set_trading_stop(sl=None, tp=None):
     if tp: d['takeProfit'] = str(tp)
     return bybit_request('/v5/position/trading-stop', data=d)
 
-def calc_size(balance, entry, sl):
-    risk = balance * RISK_RULES['max_risk_percent'] / 100
+def calc_size(balance, entry, sl, risk_pct=None):
+    risk = balance * (risk_pct if risk_pct is not None else RISK_RULES["max_risk_percent"]) / 100
     risk_per = abs(entry - sl)
     return round(risk / risk_per, 3) if risk_per > 0 and risk / risk_per >= 0.001 else 0
 
