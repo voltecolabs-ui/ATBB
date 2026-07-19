@@ -436,7 +436,8 @@ def main():
     conf = sig.get('confidence', 50)
     print(f"\\n🎯 Сигнал: {sig['action']} ({conf:.1f}%)")
     if sig['action'] in ['LONG', 'SHORT'] and sig.get('confidence', 0) >= 70:
-        qty = calc_size(balance['equity'], sig['entry'], sig['sl'])
+        regime = load_regime()
+        qty = calc_size(balance["equity"], sig["entry"], sig["sl"], regime.get("risk_pct", 0.5))
         if qty > 0:
             side = 'Buy' if sig['action'] == 'LONG' else 'Sell'
             print(f'\n{"🟢" if sig["action"] == "LONG" else "🔴"} ОТКРЫВАЮ {sig["action"]} {qty} BTC...')
