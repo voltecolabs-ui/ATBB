@@ -39,8 +39,12 @@ TRAILING = {
     'breakeven_buffer_pct': 0.15,    # Buffer для комиссий (0.15%)
     'partial_close_r': 1.5,          # Частичная фиксация при +1.5R
     'partial_close_pct': 30,         # Закрыть 30% позиции
+    'partial_close_2_r': 3.0,        # Вторая фиксация при +3R
+    'partial_close_2_pct': 30,       # Закрыть ещё 30% позиции
     'tight_trail_r': 2.0,            # Плотный trailing при +2R
     'tight_trail_distance_atr': 1.0, # Расстояние trailing = 1x ATR
+    'vol_high_factor': 0.7,          # Коэффициент high volatility (-30%)
+    'vol_low_factor': 1.2,           # Коэффициент low volatility (+20%)
 }
 
 def bybit_request(endpoint, params=None, data=None):
