@@ -165,10 +165,11 @@ def atr(klines, period=14):
 
 
 def adx(klines, period=14):
-    """Расчёт ADX (Average Directional Index) для определения силы тренда"""
-    if len(klines) < period + 1:
+    """Расчёт ADX с Wilder smoothing (стандарт для ADX)"""
+    if len(klines) < period * 2:
         return None, None, None
     
+    # True Range, +DM, -DM
     trs = []
     plus_dm = []
     minus_dm = []
@@ -187,20 +188,41 @@ def adx(klines, period=14):
         plus_dm.append(max(up_move, 0) if up_move > down_move else 0)
         minus_dm.append(max(down_move, 0) if down_move > up_move else 0)
     
-    # ATR
-    atr_val = sum(trs[-period:]) / period if trs else 1
+    if len(trs) < period:
+        return None, None, None
     
-    # +DI / -DI
-    plus_di = 100 * (sum(plus_dm[-period:]) / period) / atr_val if atr_val > 0 else 0
-    minus_di = 100 * (sum(minus_dm[-period:]) / period) / atr_val if atr_val > 0 else 0
+    # Wilder smoothing для ATR, +DM, -DM
+    atr_val = sum(trs[:period]) / period
+    smooth_plus_dm = sum(plus_dm[:period]) / period
+    smooth_minus_dm = sum(minus_dm[:period]) / period
     
-    # DX
-    if plus_di + minus_di == 0:
-        dx = 0
-    else:
-        dx = abs(plus_di - minus_di) / (plus_di + minus_di) * 100
+    dx_values = []
     
-    return dx, plus_di, minus_di
+    for i in range(period, len(trs)):
+        # Wilder smoothing
+        atr_val = (atr_val * (period - 1) + trs[i]) / period
+        smooth_plus_dm = (smooth_plus_dm * (period - 1) + plus_dm[i]) / period
+        smooth_minus_dm = (smooth_minus_dm * (period - 1) + minus_dm[i]) / period
+        
+        # +DI / -DI
+        plus_di = 100 * smooth_plus_dm / atr_val if atr_val > 0 else 0
+        minus_di = 100 * smooth_minus_dm / atr_val if atr_val > 0 else 0
+        
+        # DX
+        if plus_di + minus_di == 0:
+            dx = 0
+        else:
+            dx = abs(plus_di - minus_di) / (plus_di + minus_di) * 100
+        dx_values.append(dx)
+    
+    # ADX = Wilder smoothed DX
+    if len(dx_values) >= period:
+        adx_val = sum(dx_values[:period]) / period
+        for dx in dx_values[period:]:
+            adx_val = (adx_val * (period - 1) + dx) / period
+        return adx_val, plus_di, minus_di
+    
+    return None, None, None
 def volume_ratio(klines, period=20):
     if len(klines) < period: return 1.0
     vols = [k['volume'] for k in klines[-period:]]
