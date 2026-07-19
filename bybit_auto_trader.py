@@ -486,6 +486,22 @@ def main():
     manage_trailing_stop(positions, analysis)
     balance = get_balance()
     if not balance: print('❌ Ошибка баланса'); return
+
+    # === ПРОВЕРКА ЛИМИТОВ ===
+    daily_ok, daily_pnl, daily_limit = check_daily_loss_limit(state, balance["equity"])
+    if daily_ok:
+        print(f"🔴 Дневной лимит: ${daily_pnl:,.2f} / -${daily_limit:,.2f}")
+        state["last_analysis"] = analysis; save_state(state); return
+    
+    weekly_ok, weekly_pnl, weekly_limit = check_weekly_loss_limit(state, balance["equity"])
+    if weekly_ok:
+        print(f"🔴 Недельный лимит: ${weekly_pnl:,.2f} / -${weekly_limit:,.2f}")
+        state["last_analysis"] = analysis; save_state(state); return
+    
+    dd_ok, max_dd = check_max_drawdown(state, balance["equity"])
+    if dd_ok:
+        print(f"🔴 Max Drawdown: {max_dd:.1f}% / {RISK_RULES["max_drawdown_pct"]}% — KILL SWITCH")
+        state["last_analysis"] = analysis; save_state(state); return
     sig = signal(analysis, positions, state)
     print(f"💰 Баланс: ${balance['equity']:,.2f} | PnL: ${balance['pnl']:,.2f}")
     print(f"📊 BTC: ${analysis['price']:,.2f} ({analysis['change']:+.2f}%)")
