@@ -341,6 +341,16 @@ def signal(analysis, positions, state):
         return {'action': 'WAIT', 'reason': f'Серия убытков, пауза {LOSS_COOLDOWN_HOURS}ч'}
 
     # === ФИЛЬТР ВРЕМЕНИ ===
+
+    # === ФИЛЬТР ОБЪЁМА ===
+    if analysis.get("volume", 1.0) < RISK_RULES["min_volume_ratio"]:
+        return {"action": "WAIT", "reason": f"Низкий объём: {analysis.get("volume", 1.0):.2f}x < {RISK_RULES["min_volume_ratio"]}x"}
+
+    # === МАКС. СДЕЛОК В ДЕНЬ ===
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    daily_trades = sum(1 for t in state.get("trades", []) if t.get("time", "").startswith(today))
+    if daily_trades >= RISK_RULES["max_daily_trades"]:
+        return {"action": "WAIT", "reason": f"Макс. сделок в день: {daily_trades}/{RISK_RULES["max_daily_trades"]}"}
     if not is_trading_hours():
         return {"action": "WAIT", "reason": "Вне торговых часов (08:00-20:00 UTC)"}
 
