@@ -426,9 +426,14 @@ def set_trading_stop(sl=None, tp=None):
     if tp: d['takeProfit'] = str(tp)
     return bybit_request('/v5/position/trading-stop', data=d)
 
-def calc_size(balance, entry, sl, risk_pct=None):
+def calc_size(balance, entry, sl, risk_pct=None, vol_ratio=1.0):
     risk = balance * (risk_pct if risk_pct is not None else RISK_RULES["max_risk_percent"]) / 100
     risk_per = abs(entry - sl)
+    # Адаптация к volatility
+    if vol_ratio > 1.5:
+        risk *= TRAILING["vol_high_factor"]  # Уменьшаем в шумном рынке
+    elif vol_ratio < 0.7:
+        risk *= TRAILING["vol_low_factor"]   # Увеличиваем в тихом рынке
     return round(risk / risk_per, 3) if risk_per > 0 and risk / risk_per >= 0.001 else 0
 
 def save_state(s):
@@ -491,7 +496,7 @@ def main():
     print(f"\\n🎯 Сигнал: {sig['action']} ({conf:.1f}%)")
     if sig['action'] in ['LONG', 'SHORT'] and sig.get('confidence', 0) >= 70:
         regime = load_regime()
-        qty = calc_size(balance["equity"], sig["entry"], sig["sl"], regime.get("risk_pct", 0.5))
+        qty = calc_size(balance["equity"], sig["entry"], sig["sl"], regime.get("risk_pct", 0.5), analysis.get("vol_ratio", 1.0))
         if qty > 0:
             side = 'Buy' if sig['action'] == 'LONG' else 'Sell'
             print(f'\n{"🟢" if sig["action"] == "LONG" else "🔴"} ОТКРЫВАЮ {sig["action"]} {qty} BTC...')
