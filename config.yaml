@@ -15,18 +15,23 @@ risk:
   min_volume_ratio: 1.25
   max_daily_trades: 2
 
-# Trailing Stop
+# Trailing Stop (Гибридная система)
 trailing:
-  breakeven_trigger_r: 1.2
-  breakeven_buffer_pct: 0.15
+  enabled: true
+  activation_r: 1.0
+  sl_distance_pct: 1.5
+  tp_distance_pct: 2.0
+  trail_only_up: true
   partial_close_r: 1.7
   partial_close_pct: 35
   partial_close_2_r: 3.0
   partial_close_2_pct: 30
-  tight_trail_r: 2.0
-  tight_trail_distance_atr: 1.0
-  vol_high_factor: 0.7
-  vol_low_factor: 1.2
+  regime_multiplier:
+    STRONG_BULL: 1.2
+    BULL: 1.0
+    NEUTRAL: 0.6
+    BEAR: 1.0
+    STRONG_BEAR: 1.2
 
 # ADX Filter
 adx:
