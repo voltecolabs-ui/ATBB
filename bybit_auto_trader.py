@@ -579,3 +579,35 @@ def check_position_timeout(positions):
             except:
                 pass
     return False, None, 0
+
+def volatility_regime(klines, period=14):
+    """Определить режим волатильности (ATR% vs средняя)"""
+    if len(klines) < 50:
+        return 'normal', 1.0
+    
+    # Текущий ATR%
+    trs = []
+    for i in range(1, len(klines)):
+        tr = max(klines[i]['high'] - klines[i]['low'],
+                 abs(klines[i]['high'] - klines[i-1]['close']),
+                 abs(klines[i]['low'] - klines[i-1]['close']))
+        trs.append(tr)
+    
+    if len(trs) < period:
+        return 'normal', 1.0
+    
+    current_atr = sum(trs[-period:]) / period
+    avg_atr = sum(trs[-50:]) / min(50, len(trs)) if len(trs) >= 50 else current_atr
+    
+    # ATR% = ATR / цена * 100
+    current_price = klines[-1]['close']
+    atr_pct = (current_atr / current_price * 100) if current_price > 0 else 0
+    avg_atr_pct = (avg_atr / current_price * 100) if current_price > 0 else 0
+    
+    # Определение режима
+    if atr_pct > avg_atr_pct * 1.5:
+        return 'high', atr_pct / avg_atr_pct if avg_atr_pct > 0 else 1.0
+    elif atr_pct < avg_atr_pct * 0.7:
+        return 'low', atr_pct / avg_atr_pct if avg_atr_pct > 0 else 1.0
+    else:
+        return 'normal', atr_pct / avg_atr_pct if avg_atr_pct > 0 else 1.0
