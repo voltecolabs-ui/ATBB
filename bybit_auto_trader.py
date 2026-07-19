@@ -26,6 +26,10 @@ RISK_RULES = {
     'max_daily_losses': 2,
     'force_close_loss_pct': -1.0,
     'take_profit_alert_pct': 5.0,
+    'daily_loss_limit_pct': 3.0,      # Макс. дневной убыток % от баланса
+    'weekly_loss_limit_pct': 7.0,     # Макс. недельный убыток % от баланса
+    'max_drawdown_pct': 15.0,         # Макс. просадка от пика % - Kill Switch
+    'position_max_hours': 48,         # Макс. время позиции (часы) без прибыли
 }
 LOSS_COOLDOWN_HOURS = 4  # Пауза после серии убытков (часы)
 
@@ -518,3 +522,60 @@ def manage_trailing_stop(positions, analysis):
                         })
                         save_state(state)
 
+
+def check_daily_loss_limit(state, balance):
+    """Проверить дневной лимит убытков"""
+    today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    daily_pnl = 0
+    for trade in state.get('trades', []):
+        if trade.get('time', '').startswith(today) and trade.get('closed_pnl') is not None:
+            daily_pnl += trade['closed_pnl']
+    daily_limit = balance * RISK_RULES['daily_loss_limit_pct'] / 100
+    if daily_pnl < -daily_limit:
+        return True, daily_pnl, daily_limit
+    return False, daily_pnl, daily_limit
+
+def check_weekly_loss_limit(state, balance):
+    """Проверить недельный лимит убытков"""
+    now = datetime.now(timezone.utc)
+    week_start = now - timedelta(days=now.weekday())
+    week_start_str = week_start.strftime('%Y-%m-%d')
+    weekly_pnl = 0
+    for trade in state.get('trades', []):
+        if trade.get('time', '') >= week_start_str and trade.get('closed_pnl') is not None:
+            weekly_pnl += trade['closed_pnl']
+    weekly_limit = balance * RISK_RULES['weekly_loss_limit_pct'] / 100
+    if weekly_pnl < -weekly_limit:
+        return True, weekly_pnl, weekly_limit
+    return False, weekly_pnl, weekly_limit
+
+def check_max_drawdown(state, balance):
+    """Проверить максимальную просадку от пика"""
+    peak = balance
+    max_dd = 0
+    for trade in state.get('trades', []):
+        if trade.get('closed_pnl') is not None:
+            peak += trade['closed_pnl']
+            if peak > balance:
+                peak = balance
+            dd = (balance - peak) / balance * 100 if balance > 0 else 0
+            if dd > max_dd:
+                max_dd = dd
+    if max_dd >= RISK_RULES['max_drawdown_pct']:
+        return True, max_dd
+    return False, max_dd
+
+def check_position_timeout(positions):
+    """Проверить таймаут позиций (без прибыли >48h)"""
+    for p in positions:
+        if p.get('open_time'):
+            try:
+                open_time = datetime.fromisoformat(p['open_time'].replace('Z', '+00:00'))
+                if open_time.tzinfo is None:
+                    open_time = open_time.replace(tzinfo=timezone.utc)
+                hours_open = (datetime.now(timezone.utc) - open_time).total_seconds() / 3600
+                if hours_open > RISK_RULES['position_max_hours'] and p.get('pnl', 0) <= 0:
+                    return True, p, hours_open
+            except:
+                pass
+    return False, None, 0
