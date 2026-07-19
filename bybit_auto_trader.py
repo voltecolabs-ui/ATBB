@@ -769,13 +769,18 @@ TRAILING = {
 
 def manage_trailing_stop(positions, analysis):
     """Гибридный Trailing Stop + TP с regime multiplier"""
-    if not positions or not analysis or not TRAILING['enabled']:
+    if not positions or not analysis or not TRAILING["enabled"]:
         return
     
-    # Получить regime multiplier
+    # Получить regime
     regime = load_regime()
-    regime_name = regime.get('regime', 'NEUTRAL')
-    multiplier = TRAILING['regime_multiplier'].get(regime_name, 1.0)
+    regime_name = regime.get("regime", "NEUTRAL")
+    
+    # === REGIME FILTER ===
+    if regime_name in ["NEUTRAL", "RANGE", "STRONG_BEAR"]:
+        return  # Не трейлим в этих режимах
+    
+    multiplier = TRAILING["regime_multiplier"].get(regime_name, 1.0)
     
     atr_val = analysis.get('atr') or 200
     
