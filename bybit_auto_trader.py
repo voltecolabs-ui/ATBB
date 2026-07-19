@@ -870,4 +870,3 @@ def manage_trailing_stop(positions, analysis):
                         save_state(state)
 
 
-def check_daily_loss_limit(state, balance):
