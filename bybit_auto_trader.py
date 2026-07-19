@@ -48,19 +48,30 @@ TRAIL_COOLDOWN = 60  # Минимальный интервал между обн
 
 # Trailing Stop настройки
 
-def bybit_request(endpoint, params=None, data=None):
+def bybit_request(endpoint, params=None, data=None, max_retries=3):
+    """Запрос к Bybit API с retry и exponential backoff"""
     if not BYBIT_API_KEY or not BYBIT_API_SECRET: return {'error': 'No API keys'}
-    ts = str(int(time.time() * 1000))
-    q = '&'.join([f'{k}={v}' for k, v in sorted(params.items())]) if params else ''
-    body = json.dumps(data) if data else ''
-    sign = hmac.new(BYBIT_API_SECRET.encode(), f"{ts}{BYBIT_API_KEY}5000{q}{body}".encode(), hashlib.sha256).hexdigest()
-    url = f'{DEMO_BASE}{endpoint}' + (f'?{q}' if q else '')
-    h = {'X-BAPI-API-KEY': BYBIT_API_KEY, 'X-BAPI-SIGN': sign, 'X-BAPI-TIMESTAMP': ts, 'X-BAPI-RECV-WINDOW': '5000', 'Content-Type': 'application/json'}
-    req = urllib.request.Request(url, headers=h, method='POST' if data else 'GET')
-    if data: req.data = body.encode()
-    try:
-        with urllib.request.urlopen(req, timeout=10) as r: return json.loads(r.read().decode())
-    except Exception as e: return {'error': str(e)}
+    
+    for attempt in range(max_retries):
+        try:
+            ts = str(int(time.time() * 1000))
+            q = '&'.join([f'{k}={v}' for k, v in sorted(params.items())]) if params else ''
+            body = json.dumps(data) if data else ''
+            sign = hmac.new(BYBIT_API_SECRET.encode(), f"{ts}{BYBIT_API_KEY}5000{q}{body}".encode(), hashlib.sha256).hexdigest()
+            url = f'{DEMO_BASE}{endpoint}' + (f'?{q}' if q else '')
+            h = {'X-BAPI-API-KEY': BYBIT_API_KEY, 'X-BAPI-SIGN': sign, 'X-BAPI-TIMESTAMP': ts, 'X-BAPI-RECV-WINDOW': '5000', 'Content-Type': 'application/json'}
+            req = urllib.request.Request(url, headers=h, method='POST' if data else 'GET')
+            if data: req.data = body.encode()
+            with urllib.request.urlopen(req, timeout=10) as r:
+                return json.loads(r.read().decode())
+        except Exception as e:
+            if attempt < max_retries - 1:
+                wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s
+                print(f"   ⚠️ API retry {attempt + 1}/{max_retries}: {e} (wait {wait_time}s)")
+                time.sleep(wait_time)
+            else:
+                return {'error': str(e)}
+    return {'error': 'Max retries exceeded'}
 
 def get_balance():
     r = bybit_request('/v5/account/wallet-balance', {'accountType': 'UNIFIED'})
