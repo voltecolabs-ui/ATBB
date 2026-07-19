@@ -840,6 +840,7 @@ def manage_trailing_stop(positions, analysis):
                     log_msg = f"[{regime_name} x{multiplier:.1f}] +{r_multiple:.1f}R | SL ${new_sl:,.2f} ({sl_dist:.1f}%) | TP ${new_tp:,.2f} ({dist_to_tp:.1f}%)"
                     print(f"   🔒 Trailing {log_msg}")
                     # Запись в лог-файл
+                    os.makedirs(os.path.expanduser("~/.hermes/profiles/trader/logs"), exist_ok=True)
                     with open(os.path.expanduser("~/.hermes/profiles/trader/logs/trailing.log"), "a") as lf:
                         lf.write(f"{datetime.now().isoformat()} | {side} {p['size']} BTC @ ${entry:,.2f} | {log_msg}\n")
                     state[last_trail_key] = time.time()
@@ -873,8 +874,8 @@ def manage_trailing_stop(positions, analysis):
                         save_state(state)
         
         # 2. При +3R → 30%
+        partial_key_2 = f"partial_closed_2_{p['entry']}"
         if r_multiple >= TRAILING['partial_close_2_r'] and not state.get(partial_key_2):
-            partial_key_2 = f"partial_closed_2_{p['entry']}"
             state = load_state()
             if not state.get(partial_key_2):
                 partial_qty = round(p['size'] * TRAILING['partial_close_2_pct'] / 100, 3)
