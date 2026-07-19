@@ -839,8 +839,8 @@ def manage_trailing_stop(positions, analysis):
                 print(f"   🔒 Trailing [{regime_name} x{multiplier:.1f}]: +{r_multiple:.1f}R")
                 print(f"      SL: ${new_sl:,.2f} ({sl_dist:.1f}% dist)")
                 print(f"      TP: ${new_tp:,.2f} ({dist_to_tp:.1f}% до TP)")
-                        state[last_trail_key] = time.time()
-                        save_state(state)
+                state[last_trail_key] = time.time()
+                save_state(state)
         
         # === PARTIAL CLOSE ===
         # 1. При +1.7R → 35%
