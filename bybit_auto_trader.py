@@ -285,7 +285,7 @@ def analyze():
     e21 = ema(closes, 21); e55 = ema(closes, 55); e200 = ema(closes, 200) if len(closes) >= 200 else None
     r = rsi(closes); ml, sl, hist = macd(closes)
     bu, bm, bl = bollinger(closes); vr = volume_ratio(klines)
-    a = atr(klines); sk, sd = stochastic_rsi(closes); adx_val, pdi, mdi = adx(klines)
+    a = atr(klines); sk, sd = stochastic_rsi(closes); adx_val, pdi, mdi = adx(klines); vol_regime, vol_ratio = volatility_regime(klines)
     trend = 'bullish' if e21 and e55 and e21 > e55 else 'bearish' if e21 and e55 and e21 < e55 else 'neutral'
     mom = 'bullish' if ml and sl and ml > sl else 'bearish' if ml and sl and ml < sl else 'neutral'
     support = min(k['low'] for k in klines[-20:]); resistance = max(k['high'] for k in klines[-20:])
@@ -295,7 +295,7 @@ def analyze():
             'ema21': e21, 'ema55': e55, 'ema200': e200, 'rsi': r, 'macd': ml, 'macd_signal': sl, 'hist': hist,
             'bb_upper': bu, 'bb_mid': bm, 'bb_lower': bl, 'atr': a, 'adx': adx_val, 'plus_di': pdi, 'minus_di': mdi, 'stoch_rsi_k': sk, 'stoch_rsi_d': sd,
             'volume': vr, 'funding': funding, 'oi': oi, 'support': support, 'resistance': resistance,
-            'swing_low': swing_low, 'swing_high': swing_high}
+            'swing_low': swing_low, 'swing_high': swing_high, 'vol_regime': vol_regime, 'vol_ratio': vol_ratio}
 
 def signal(analysis, positions, state):
     if not analysis: return None
