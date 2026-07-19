@@ -144,16 +144,6 @@ def stochastic_rsi(prices, rsi_period=14, stoch_period=14):
     k = (rsi_vals[-1] - rsi_min) / (rsi_max - rsi_min) * 100
     d = sum(rsi_vals[-3:]) / 3 if len(rsi_vals) >= 3 else k
     return k, d
-    rsi_vals = []
-    for i in range(rsi_period + 1, len(prices) + 1):
-        r = rsi(prices[:i], rsi_period)
-        if r is not None: rsi_vals.append(r)
-    if len(rsi_vals) < stoch_period: return None, None
-    rsi_min = min(rsi_vals[-stoch_period:]); rsi_max = max(rsi_vals[-stoch_period:])
-    if rsi_max - rsi_min == 0: return 50, 50
-    k = (rsi_vals[-1] - rsi_min) / (rsi_max - rsi_min) * 100
-    d = sum(rsi_vals[-3:]) / 3 if len(rsi_vals) >= 3 else k
-    return k, d
 def macd(prices, fast=12, slow=26, signal=9):
     if len(prices) < slow: return None, None, None
     ef = ema(prices, fast); es = ema(prices, slow)
