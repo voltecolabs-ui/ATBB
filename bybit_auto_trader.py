@@ -90,7 +90,7 @@ def get_positions():
             if sz > 0:
                 positions.append({'side': p['side'], 'size': sz, 'entry': float(p.get('avgPrice', 0) or 0),
                     'mark': float(p.get('markPrice', 0) or 0), 'pnl': float(p.get('unrealisedPnl', 0) or 0),
-                    'liq': float(p.get('liqPrice', 0) or 0)})
+                    'liq': float(p.get('liqPrice', 0) or 0), 'open_time': p.get('createdTime', '')})
     return positions
 
 def get_btc_price():
