@@ -741,14 +741,6 @@ def check_position_timeout(positions):
                 pass
     return False, None, 0
 
-    # Определение режима
-    if atr_pct > avg_atr_pct * 1.5:
-        return 'high', atr_pct / avg_atr_pct if avg_atr_pct > 0 else 1.0
-    elif atr_pct < avg_atr_pct * 0.7:
-        return 'low', atr_pct / avg_atr_pct if avg_atr_pct > 0 else 1.0
-    else:
-        return 'normal', atr_pct / avg_atr_pct if avg_atr_pct > 0 else 1.0
-
 def log_trade_extended(state, trade_data):
     """Расширенное логирование сделки"""
     regime = load_regime()
