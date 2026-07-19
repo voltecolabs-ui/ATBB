@@ -12,7 +12,7 @@ def load_config():
     try:
         with open(CONFIG_FILE, "r") as f:
             return yaml.safe_load(f)
-    except:
+    except (IOError, OSError):
         return {}
 STATE_FILE = os.path.join(HERMES_HOME, 'workspace', 'trading_state.json')
 REGIME_FILE = os.path.join(HERMES_HOME, 'workspace', 'market_regime.json')
@@ -270,7 +270,7 @@ def count_recent_losses(trades, limit=10):
                 return losses  # Еще на cooldown
             else:
                 return 0  # Cooldown прошел, можно торговать
-        except:
+        except (IOError, OSError):
             return losses
     
     return losses
@@ -281,7 +281,7 @@ def load_regime():
         try:
             with open(REGIME_FILE, "r") as f:
                 return json.load(f)
-        except:
+        except (IOError, OSError):
             pass
     return {
         "regime": "NEUTRAL",
@@ -724,7 +724,7 @@ def check_position_timeout(positions):
                 hours_open = (datetime.now(timezone.utc) - open_time).total_seconds() / 3600
                 if hours_open > RISK_RULES['position_max_hours'] and p.get('pnl', 0) <= 0:
                     return True, p, hours_open
-            except:
+            except (IOError, OSError):
                 pass
     return False, None, 0
 
