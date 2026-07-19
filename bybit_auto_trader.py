@@ -288,6 +288,11 @@ def signal(analysis, positions, state):
     if count_recent_losses(state.get('trades', [])) >= RISK_RULES['max_daily_losses']:
         return {'action': 'WAIT', 'reason': f'Серия убытков, пауза {LOSS_COOLDOWN_HOURS}ч'}
 
+    # === РЕЖИМНЫЙ ФИЛЬТР ===
+    regime = load_regime()
+    if regime["allowed_direction"] not in ["LONG", "SHORT", "BOTH"]:
+        return {"action": "WAIT", "reason": f"Regime: {regime["regime"]} ({regime["allowed_direction"]})"}
+
     # === ADX ФИЛЬТР ===
     adx_val = analysis.get("adx")
     if adx_val is not None and adx_val < 23:
