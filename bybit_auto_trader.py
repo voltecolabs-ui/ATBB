@@ -546,7 +546,6 @@ def main():
     
     # Dashboard    dashboard = performance_dashboard(state)    if dashboard and dashboard['total_trades'] >= 5:        print_dashboard(dashboard)
 
-def manage_trailing_stop(positions, analysis):
 def check_daily_loss_limit(state, balance):
     """Проверить дневной лимит убытков"""
     today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
