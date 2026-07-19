@@ -596,6 +596,16 @@ def manage_trailing_stop(positions, analysis):
             result = set_trading_stop(sl=new_sl)
             if result.get('retCode') == 0:
                 print(f"   🔒 Trailing: +{r_multiple:.1f}R → SL на безубыток ${new_sl:,.2f}")
+
+        # === TRAILING TP ===
+        if r_multiple >= TRAILING["trailing_tp_trigger_r"]:
+            if side == "Buy":
+                new_tp = mark * (1 + TRAILING["trailing_tp_distance_pct"] / 100)
+            else:
+                new_tp = mark * (1 - TRAILING["trailing_tp_distance_pct"] / 100)
+            result = set_trading_stop(tp=new_tp)
+            if result.get("retCode") == 0:
+                print(f"   🎯 Trailing TP: +{r_multiple:.1f}R → TP ${new_tp:,.2f}")
         
         # 2. При +1.5R → частичная фиксация (30% позиции)
         elif r_multiple >= TRAILING['partial_close_r']:
