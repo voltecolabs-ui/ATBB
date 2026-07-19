@@ -506,7 +506,7 @@ def main():
             close_result = close_position(p['side'], p['size'])
             if close_result.get('retCode') == 0:
                 print(f"🔴 Закрыл: ${p['pnl']:,.2f} убыток")
-                state['trades'].append({'time': datetime.now().isoformat(), 'action': 'CLOSE', 'closed_pnl': p['pnl'], 'reason': 'force_close_loss_limit', 'side': p['side'], 'qty': p['size'], 'price': p['mark']})
+                log_trade_extended(state, {'action': 'CLOSE', 'closed_pnl': p['pnl'], 'reason': 'force_close_loss_limit', 'side': p['side'], 'qty': p['size'], 'price': p['mark']})
                 closed_any = True
             else:
                 print(f"❌ Ошибка закрытия: {close_result.get('retMsg')}")
@@ -514,7 +514,7 @@ def main():
             close_result = close_position(p['side'], p['size'])
             if close_result.get('retCode') == 0:
                 print(f"🟢 Закрыл: +${p['pnl']:,.2f} прибыль")
-                state['trades'].append({'time': datetime.now().isoformat(), 'action': 'CLOSE', 'closed_pnl': p['pnl'], 'reason': 'take_profit_lock', 'side': p['side'], 'qty': p['size'], 'price': p['mark']})
+                log_trade_extended(state, {'action': 'CLOSE', 'closed_pnl': p['pnl'], 'reason': 'take_profit_lock', 'side': p['side'], 'qty': p['size'], 'price': p['mark']})
                 closed_any = True
             else:
                 print(f"❌ Ошибка фиксации: {close_result.get('retMsg')}")
@@ -707,3 +707,125 @@ def check_position_timeout(positions):
 
 if __name__ == '__main__':
     main()
+
+def log_trade_extended(state, trade_data):
+    """Расширенное логирование сделки"""
+    regime = load_regime()
+    trade_entry = {
+        'time': datetime.now().isoformat(),
+        'action': trade_data.get('action'),
+        'side': trade_data.get('side'),
+        'qty': trade_data.get('qty'),
+        'price': trade_data.get('price'),
+        'sl': trade_data.get('sl'),
+        'tp': trade_data.get('tp'),
+        'closed_pnl': trade_data.get('closed_pnl'),
+        'reason': trade_data.get('reason'),
+        'regime': regime.get('regime'),
+        'regime_confidence': regime.get('confidence'),
+        'regime_direction': regime.get('allowed_direction'),
+    }
+    state['trades'].append(trade_entry)
+    return trade_entry
+
+def performance_dashboard(state):
+    """Dashboard производительности"""
+    trades = state.get('trades', [])
+    if not trades:
+        return None
+    
+    # Только закрытые сделки
+    closed = [t for t in trades if t.get('closed_pnl') is not None]
+    if not closed:
+        return None
+    
+    # Основные метрики
+    total_trades = len(closed)
+    wins = [t for t in closed if t['closed_pnl'] > 0]
+    losses = [t for t in closed if t['closed_pnl'] <= 0]
+    
+    win_rate = len(wins) / total_trades * 100 if total_trades > 0 else 0
+    total_pnl = sum(t['closed_pnl'] for t in closed)
+    avg_win = sum(t['closed_pnl'] for t in wins) / len(wins) if wins else 0
+    avg_loss = sum(t['closed_pnl'] for t in losses) / len(losses) if losses else 0
+    
+    # Profit Factor
+    gross_profit = sum(t['closed_pnl'] for t in wins)
+    gross_loss = abs(sum(t['closed_pnl'] for t in losses))
+    profit_factor = gross_profit / gross_loss if gross_loss > 0 else float('inf')
+    
+    # Expectancy (EV)
+    ev = (win_rate/100 * avg_win) + ((1 - win_rate/100) * avg_loss)
+    
+    # Max Drawdown
+    peak = 0
+    max_dd = 0
+    equity = 10000  # Начальный баланс
+    for t in closed:
+        equity += t['closed_pnl']
+        if equity > peak:
+            peak = equity
+        dd = (peak - equity) / peak * 100 if peak > 0 else 0
+        if dd > max_dd:
+            max_dd = dd
+    
+    # По регионам
+    by_regime = {}
+    for t in closed:
+        r = t.get('regime', 'UNKNOWN')
+        if r not in by_regime:
+            by_regime[r] = {'trades': 0, 'pnl': 0, 'wins': 0}
+        by_regime[r]['trades'] += 1
+        by_regime[r]['pnl'] += t['closed_pnl']
+        if t['closed_pnl'] > 0:
+            by_regime[r]['wins'] += 1
+    
+    # По причинам закрытия
+    by_reason = {}
+    for t in closed:
+        r = t.get('reason', 'UNKNOWN')
+        if r not in by_reason:
+            by_reason[r] = {'count': 0, 'pnl': 0}
+        by_reason[r]['count'] += 1
+        by_reason[r]['pnl'] += t['closed_pnl']
+    
+    return {
+        'total_trades': total_trades,
+        'wins': len(wins),
+        'losses': len(losses),
+        'win_rate': round(win_rate, 1),
+        'total_pnl': round(total_pnl, 2),
+        'avg_win': round(avg_win, 2),
+        'avg_loss': round(avg_loss, 2),
+        'profit_factor': round(profit_factor, 2),
+        'expectancy': round(ev, 2),
+        'max_drawdown': round(max_dd, 1),
+        'by_regime': by_regime,
+        'by_reason': by_reason,
+    }
+
+def print_dashboard(dashboard):
+    """Вывести dashboard"""
+    if not dashboard:
+        print("Нет данных для dashboard")
+        return
+    
+    print(f"\n=== PERFORMANCE DASHBOARD ===")
+    print(f"Всего сделок: {dashboard['total_trades']}")
+    print(f"Прибыльных: {dashboard['wins']} ({dashboard['win_rate']}%)")
+    print(f"Убыточных: {dashboard['losses']}")
+    print(f"Общий PnL: ${dashboard['total_pnl']:,.2f}")
+    print(f"Ср. прибыль: ${dashboard['avg_win']:,.2f}")
+    print(f"Ср. убыток: ${dashboard['avg_loss']:,.2f}")
+    print(f"Profit Factor: {dashboard['profit_factor']}")
+    print(f"Expectancy (EV): ${dashboard['expectancy']:,.2f}")
+    print(f"Max Drawdown: {dashboard['max_drawdown']}%")
+    
+    print(f"\n--- По регионам ---")
+    for regime, stats in dashboard['by_regime'].items():
+        wr = stats['wins'] / stats['trades'] * 100 if stats['trades'] > 0 else 0
+        print(f"  {regime}: {stats['trades']} сделок, PnL ${stats['pnl']:,.2f}, Winrate {wr:.0f}%")
+    
+    print(f"\n--- По причинам ---")
+    for reason, stats in dashboard['by_reason'].items():
+        print(f"  {reason}: {stats['count']} шт, PnL ${stats['pnl']:,.2f}")
