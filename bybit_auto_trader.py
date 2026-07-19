@@ -340,7 +340,7 @@ def signal(analysis, positions, state):
 
     # === ADX ФИЛЬТР ===
     adx_val = analysis.get("adx")
-    if adx_val is not None and adx_val < 23:
+    if adx_val is not None and adx_val < 26:
         # Боковик - проверяем Mean Reversion
         rsi_val = analysis.get("rsi", 50)
         bb_lower = analysis.get("bb_lower")
@@ -495,7 +495,7 @@ def main():
 
     conf = sig.get('confidence', 50)
     print(f"\\n🎯 Сигнал: {sig['action']} ({conf:.1f}%)")
-    if sig['action'] in ['LONG', 'SHORT'] and sig.get('confidence', 0) >= 70:
+    if sig["action"] in ["LONG", "SHORT"] and sig.get("confidence", 0) >= 78:
         regime = load_regime()
         qty = calc_size(balance["equity"], sig["entry"], sig["sl"], regime.get("risk_pct", 0.5), analysis.get("vol_ratio", 1.0))
         if qty > 0:
