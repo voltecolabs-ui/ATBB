@@ -39,8 +39,8 @@ LOSS_COOLDOWN_HOURS = 4  # Пауза после серии убытков (ча
 TRAILING = {
     'breakeven_trigger_r': 1.2,      # SL → entry при +1R
     'breakeven_buffer_pct': 0.15,    # Buffer для комиссий (0.15%)
-    'partial_close_r': 1.5,          # Частичная фиксация при +1.5R
-    'partial_close_pct': 30,         # Закрыть 30% позиции
+    'partial_close_r': 1.7,          # Частичная фиксация при +1.5R
+    'partial_close_pct': 35,         # Закрыть 30% позиции
     'partial_close_2_r': 3.0,        # Вторая фиксация при +3R
     'partial_close_2_pct': 30,       # Закрыть ещё 30% позиции
     'tight_trail_r': 2.0,            # Плотный trailing при +2R
@@ -516,7 +516,7 @@ def main():
 
     conf = sig.get('confidence', 50)
     print(f"\\n🎯 Сигнал: {sig['action']} ({conf:.1f}%)")
-    if sig["action"] in ["LONG", "SHORT"] and sig.get("confidence", 0) >= 76:
+    if sig["action"] in ["LONG", "SHORT"] and sig.get("confidence", 0) >= 77:
         regime = load_regime()
         regime_risk = regime.get("risk_pct", 0.5)
         if regime["regime"] == "NEUTRAL":
@@ -557,7 +557,7 @@ def manage_trailing_stop(positions, analysis):
             pnl_pct = (entry - mark) / entry * 100
         
         # Рассчитать R на основе ATR
-        risk_per_unit = atr_val * 1.8  # SL = entry ± 1.8 ATR
+        risk_per_unit = atr_val * 1.9  # SL = entry ± 1.9 ATR
         if risk_per_unit <= 0:
             continue
         
