@@ -448,6 +448,15 @@ def main():
                 closed_any = True
             else:
                 print(f"❌ Ошибка фиксации: {close_result.get('retMsg')}")
+        # Проверка таймаута позиции
+        if not closed_any and pnl_pct <= 0:
+            timeout, pos, hours = check_position_timeout([p])
+            if timeout:
+                close_result = close_position(p["side"], p["size"])
+                if close_result.get("retCode") == 0:
+                    print(f"⏰ Таймаут: позиция {hours:.0f}ч без прибыли - закрыта")
+                    state["trades"].append({"time": datetime.now().isoformat(), "action": "CLOSE", "closed_pnl": p["pnl"], "reason": "position_timeout", "side": p["side"], "qty": p["size"], "price": p["mark"]})
+                    closed_any = True
     if closed_any:
         state['last_analysis'] = analysis; save_state(state); return
     conf = sig.get('confidence', 50)
