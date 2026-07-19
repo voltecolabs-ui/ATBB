@@ -833,14 +833,21 @@ def manage_trailing_stop(positions, analysis):
         
         # Один запрос API для SL + TP
         if sl_valid:
-            result = set_trading_stop(sl=new_sl, tp=new_tp)
-            if result.get("retCode") == 0:
-                dist_to_tp = abs(new_tp - mark) / mark * 100
-                print(f"   🔒 Trailing [{regime_name} x{multiplier:.1f}]: +{r_multiple:.1f}R")
-                print(f"      SL: ${new_sl:,.2f} ({sl_dist:.1f}% dist)")
-                print(f"      TP: ${new_tp:,.2f} ({dist_to_tp:.1f}% до TP)")
-                state[last_trail_key] = time.time()
-                save_state(state)
+            try:
+                result = set_trading_stop(sl=new_sl, tp=new_tp)
+                if result.get("retCode") == 0:
+                    dist_to_tp = abs(new_tp - mark) / mark * 100
+                    log_msg = f"[{regime_name} x{multiplier:.1f}] +{r_multiple:.1f}R | SL ${new_sl:,.2f} ({sl_dist:.1f}%) | TP ${new_tp:,.2f} ({dist_to_tp:.1f}%)"
+                    print(f"   🔒 Trailing {log_msg}")
+                    # Запись в лог-файл
+                    with open(os.path.expanduser("~/.hermes/profiles/trader/logs/trailing.log"), "a") as lf:
+                        lf.write(f"{datetime.now().isoformat()} | {side} {p['size']} BTC @ ${entry:,.2f} | {log_msg}\n")
+                    state[last_trail_key] = time.time()
+                    save_state(state)
+                else:
+                    print(f"   ⚠️ Trailing failed: {result.get('retMsg', 'unknown error')}")
+            except Exception as e:
+                print(f"   ❌ Trailing error: {e}")
         
         # === PARTIAL CLOSE ===
         # 1. При +1.7R → 35%
