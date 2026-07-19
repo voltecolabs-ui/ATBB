@@ -30,6 +30,8 @@ RISK_RULES = {
     'weekly_loss_limit_pct': 7.0,     # Макс. недельный убыток % от баланса
     'max_drawdown_pct': 15.0,         # Макс. просадка от пика % - Kill Switch
     'position_max_hours': 48,         # Макс. время позиции (часы) без прибыли
+    'min_volume_ratio': 1.25,           # Мин. объём для входа
+    'max_daily_trades': 2,              # Макс. сделок в день
 }
 LOSS_COOLDOWN_HOURS = 4  # Пауза после серии убытков (часы)
 
@@ -349,7 +351,7 @@ def signal(analysis, positions, state):
 
     # === ADX ФИЛЬТР ===
     adx_val = analysis.get("adx")
-    if adx_val is not None and adx_val < 26:
+    if adx_val is not None and adx_val < 24:
         # Боковик - проверяем Mean Reversion
         rsi_val = analysis.get("rsi", 50)
         bb_lower = analysis.get("bb_lower")
@@ -504,7 +506,7 @@ def main():
 
     conf = sig.get('confidence', 50)
     print(f"\\n🎯 Сигнал: {sig['action']} ({conf:.1f}%)")
-    if sig["action"] in ["LONG", "SHORT"] and sig.get("confidence", 0) >= 78:
+    if sig["action"] in ["LONG", "SHORT"] and sig.get("confidence", 0) >= 75:
         regime = load_regime()
         qty = calc_size(balance["equity"], sig["entry"], sig["sl"], regime.get("risk_pct", 0.5), analysis.get("vol_ratio", 1.0))
         if qty > 0:
