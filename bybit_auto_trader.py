@@ -873,7 +873,7 @@ def manage_trailing_stop(positions, analysis):
                         save_state(state)
         
         # 2. При +3R → 30%
-        elif r_multiple >= TRAILING['partial_close_2_r']:
+        if r_multiple >= TRAILING['partial_close_2_r'] and not state.get(partial_key_2):
             partial_key_2 = f"partial_closed_2_{p['entry']}"
             state = load_state()
             if not state.get(partial_key_2):
