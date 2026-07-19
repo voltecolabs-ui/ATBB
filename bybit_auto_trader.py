@@ -735,3 +735,6 @@ def check_position_timeout(positions):
         return 'low', atr_pct / avg_atr_pct if avg_atr_pct > 0 else 1.0
     else:
         return 'normal', atr_pct / avg_atr_pct if avg_atr_pct > 0 else 1.0
+
+if __name__ == '__main__':
+    main()
