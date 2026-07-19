@@ -356,7 +356,7 @@ def signal(analysis, positions, state):
 
     # === РЕЖИМНЫЙ ФИЛЬТР ===
     regime = load_regime()
-    if regime["allowed_direction"] not in ["LONG", "SHORT", "BOTH"]:
+    if regime["allowed_direction"] not in ["LONG", "SHORT", "BOTH"] or regime["regime"] in ["NEUTRAL", "RANGE", "STRONG_BEAR"]:
         return {"action": "WAIT", "reason": f"Regime: {regime["regime"]} ({regime["allowed_direction"]})"}
 
     # === ADX ФИЛЬТР ===
