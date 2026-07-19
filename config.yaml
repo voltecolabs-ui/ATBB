@@ -1,0 +1,46 @@
+# BTC Auto Trader Configuration
+
+# Risk Management
+risk:
+  max_risk_percent: 0.5
+  min_rr_ratio: 2.0
+  max_positions: 1
+  max_daily_losses: 2
+  force_close_loss_pct: -1.0
+  take_profit_alert_pct: 5.0
+  daily_loss_limit_pct: 3.0
+  weekly_loss_limit_pct: 7.0
+  max_drawdown_pct: 15.0
+  position_max_hours: 48
+  min_volume_ratio: 1.25
+  max_daily_trades: 2
+
+# Trailing Stop
+trailing:
+  breakeven_trigger_r: 1.2
+  breakeven_buffer_pct: 0.15
+  partial_close_r: 1.7
+  partial_close_pct: 35
+  partial_close_2_r: 3.0
+  partial_close_2_pct: 30
+  tight_trail_r: 2.0
+  tight_trail_distance_atr: 1.0
+  vol_high_factor: 0.7
+  vol_low_factor: 1.2
+
+# ADX Filter
+adx:
+  threshold: 24
+
+# Confidence Threshold
+confidence:
+  min_entry: 77
+
+# Time Filter (UTC)
+trading_hours:
+  start: 8
+  end: 20
+
+# Loss Cooldown
+cooldown:
+  hours: 4

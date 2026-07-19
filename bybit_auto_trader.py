@@ -1,9 +1,19 @@
 #!/usr/bin/env python3
 """Bybit BTC Auto Trader v10 - EMA, RSI, MACD, Bollinger, ATR, StochRSI, OI, Funding"""
 import os, time, json, hashlib, hmac, urllib.request
+import yaml
 from datetime import datetime, timedelta, timezone
 
 HERMES_HOME = os.environ.get('HERMES_HOME', os.path.expanduser('~/.hermes/profiles/trader'))
+CONFIG_FILE = os.path.join(os.path.dirname(__file__), "config.yaml")
+
+def load_config():
+    """Загрузить конфигурацию из config.yaml"""
+    try:
+        with open(CONFIG_FILE, "r") as f:
+            return yaml.safe_load(f)
+    except:
+        return {}
 STATE_FILE = os.path.join(HERMES_HOME, 'workspace', 'trading_state.json')
 REGIME_FILE = os.path.join(HERMES_HOME, 'workspace', 'market_regime.json')
 
