@@ -1,51 +1,54 @@
+# ============================================
 # BTC Auto Trader Configuration
+# ============================================
 
 # Risk Management
 risk:
-  max_risk_percent: 0.5
-  min_rr_ratio: 2.0
-  max_positions: 1
-  max_daily_losses: 2
-  force_close_loss_pct: -1.0
-  take_profit_alert_pct: 5.0
-  daily_loss_limit_pct: 3.0
-  weekly_loss_limit_pct: 7.0
-  max_drawdown_pct: 15.0
-  position_max_hours: 48
-  min_volume_ratio: 1.25
-  max_daily_trades: 2
+  max_risk_percent: 0.5       # Макс. риск на сделку (% от баланса)
+  min_rr_ratio: 2.0           # Минимальный Risk:Reward
+  max_positions: 1            # Макс. открытых позиций
+  max_daily_losses: 2         # Макс. убытков подряд (пауза)
+  force_close_loss_pct: -1.0  # Принудительное закрытие при убытке %
+  take_profit_alert_pct: 5.0  # Фиксация прибыли %
+  daily_loss_limit_pct: 3.0   # Дневной лимит убытков %
+  weekly_loss_limit_pct: 7.0  # Недельный лимит убытков %
+  max_drawdown_pct: 15.0      # Макс. просадка от пика % (Kill Switch)
+  position_max_hours: 48      # Макс. время позиции (часы) без прибыли
+  min_volume_ratio: 1.25      # Мин. объём для входа (x от среднего)
+  max_daily_trades: 2         # Макс. сделок в день
 
-# Trailing Stop (Гибридная система)
+# Trailing Stop (Гибридная система с regime multiplier)
 trailing:
-  enabled: true
-  activation_r: 1.0
-  sl_distance_pct: 1.5
-  tp_distance_pct: 2.0
-  trail_only_up: true
-  partial_close_r: 1.7
-  partial_close_pct: 35
-  partial_close_2_r: 3.0
-  partial_close_2_pct: 30
+  enabled: true               # Включить trailing stop
+  activation_r: 1.0           # Начинать трейлинг после +1.0R
+  sl_distance_pct: 1.5        # SL = текущая цена - 1.5%
+  tp_distance_pct: 2.0        # TP = текущая цена + 2.0%
+  trail_only_up: true         # Двигать только вверх (никогда вниз)
+  partial_close_r: 1.7        # Частичная фиксация при +1.7R
+  partial_close_pct: 35       # Закрыть 35% позиции
+  partial_close_2_r: 3.0      # Вторая фиксация при +3R
+  partial_close_2_pct: 30     # Закрыть ещё 30% позиции
+  # Regime Multiplier: адаптация расстояний к рыночному режиму
   regime_multiplier:
-    STRONG_BULL: 1.2
-    BULL: 1.0
-    NEUTRAL: 0.6
-    BEAR: 1.0
-    STRONG_BEAR: 1.2
+    STRONG_BULL: 1.2          # Шире в сильном бычьем тренде
+    BULL: 1.0                 # Стандарт
+    NEUTRAL: 0.6              # Уже в боковике
+    BEAR: 1.0                 # Стандарт
+    STRONG_BEAR: 1.2          # Шире в сильном медвежьем тренде
 
-# ADX Filter
+# ADX Filter: фильтр боковика
 adx:
-  threshold: 24
+  threshold: 24               # ADX < 24 = боковик → WAIT или Mean Reversion
 
-# Confidence Threshold
+# Confidence Threshold: минимальная уверенность для входа
 confidence:
-  min_entry: 77
+  min_entry: 77               # Сигнал с confidence < 77 игнорируется
 
-# Time Filter (UTC)
+# Time Filter: торговые часы (UTC)
 trading_hours:
-  start: 8
-  end: 20
+  start: 8                    # Начало торговли (08:00 UTC)
+  end: 20                     # Конец торговли (20:00 UTC)
 
-# Loss Cooldown
+# Loss Cooldown: пауза после серии убытков
 cooldown:
-  hours: 4
+  hours: 4                    # Пауза 4 часа после 2 убытков подряд
