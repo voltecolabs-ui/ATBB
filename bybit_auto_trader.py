@@ -43,6 +43,171 @@ RISK_RULES = {
     'min_volume_ratio': 1.25,           # Мин. объём для входа
     'max_daily_trades': 2,              # Макс. сделок в день
 }
+TRAILING = {
+    # Основные настройки
+    'enabled': True,
+    'activation_r': 1.0,               # Начинать трейлинг после +1.0R
+    
+    # SL/TP расстояния
+    'sl_distance_pct': 1.5,            # SL = цена - 1.5%
+    'tp_distance_pct': 2.0,            # TP = цена + 2.0%
+    
+    # Режим трейлинга
+    'trail_only_up': True,             # Двигать только вверх
+    
+    # Partial Close
+    'partial_close_r': 1.7,            # Частичная фиксация при +1.7R
+    'partial_close_pct': 35,           # Закрыть 35% позиции
+    'partial_close_2_r': 3.0,          # Вторая фиксация при +3R
+    'partial_close_2_pct': 30,         # Закрыть ещё 30%
+    
+    # Volatility
+    'vol_high_factor': 0.7,            # High vol: -30% размера
+    'vol_low_factor': 1.2,             # Low vol: +20% размера
+    
+    # Regime Multiplier
+    'regime_multiplier': {
+        'STRONG_BULL': 1.2,            # Даём тренду больше пространства
+        'BULL': 1.0,                   # Стандарт
+        'NEUTRAL': 0.6,                # Tighter в боковике
+        'BEAR': 1.0,                   # Стандарт
+        'STRONG_BEAR': 1.2,            # Больше пространства для шортов
+    },
+}
+
+def manage_trailing_stop(positions, analysis):
+    """Гибридный Trailing Stop + TP с regime multiplier"""
+    if not positions or not analysis or not TRAILING["enabled"]:
+        return
+    
+    # Получить regime
+    regime = load_regime()
+    regime_name = regime.get("regime", "NEUTRAL")
+    
+    # === REGIME FILTER ===
+    if regime_name in ["NEUTRAL", "RANGE", "STRONG_BEAR"]:
+        return  # Не трейлим в этих режимах
+    
+    multiplier = TRAILING["regime_multiplier"].get(regime_name, 1.0)
+    
+    atr_val = analysis.get('atr') or 200
+    state = load_state()
+    
+    for p in positions:
+        entry = p['entry']
+        mark = p['mark']
+        side = p['side']
+        
+        # Рассчитать R
+        risk_per_unit = atr_val * 1.9
+        if risk_per_unit <= 0:
+            continue
+        
+        if side == 'Buy':
+            r_multiple = (mark - entry) / risk_per_unit
+        else:
+            r_multiple = (entry - mark) / risk_per_unit
+        
+        # Проверка: трейлинг активируется при +1.0R
+        if r_multiple < TRAILING['activation_r']:
+            continue
+        
+        # Рассчитать расстояния с regime multiplier
+        sl_dist = TRAILING['sl_distance_pct'] * multiplier
+        tp_dist = TRAILING['tp_distance_pct'] * multiplier
+        
+        # Rate limit: проверяем интервал между обновлениями
+        last_trail_key = f"last_trail_{p['entry']}"
+        last_trail_time = state.get(last_trail_key, 0)
+        if time.time() - last_trail_time < TRAIL_COOLDOWN:
+            continue  # Пропустить, если прошло менее TRAIL_COOLDOWN секунд
+
+        # === TRAILING SL ===
+        if side == "Buy":
+            new_sl = mark * (1 - sl_dist / 100)
+        else:
+            new_sl = mark * (1 + sl_dist / 100)
+        
+        current_sl = p.get("stopLoss", 0)
+        sl_valid = (side == "Buy" and new_sl > entry and (current_sl == 0 or new_sl > current_sl * 1.001)) or \
+                   (side == "Sell" and new_sl < entry and (current_sl == 0 or new_sl < current_sl * 0.999))
+        
+        # === TRAILING TP ===
+        if side == "Buy":
+            new_tp = mark * (1 + tp_dist / 100)
+        else:
+            new_tp = mark * (1 - tp_dist / 100)
+        
+        # Один запрос API для SL + TP
+        if sl_valid:
+            try:
+                result = set_trading_stop(sl=new_sl, tp=new_tp)
+                if result.get("retCode") == 0:
+                    dist_to_tp = abs(new_tp - mark) / mark * 100
+                    log_msg = f"[{regime_name} x{multiplier:.1f}] +{r_multiple:.1f}R | SL ${new_sl:,.2f} ({sl_dist:.1f}%) | TP ${new_tp:,.2f} ({dist_to_tp:.1f}%)"
+                    print(f"   🔒 Trailing {log_msg}")
+                    # Запись в лог-файл
+                    os.makedirs(os.path.expanduser("~/.hermes/profiles/trader/logs"), exist_ok=True)
+                    with open(os.path.expanduser("~/.hermes/profiles/trader/logs/trailing.log"), "a") as lf:
+                        lf.write(f"{datetime.now().isoformat()} | {side} {p['size']} BTC @ ${entry:,.2f} | {log_msg}\n")
+                    state[last_trail_key] = time.time()
+                else:
+                    print(f"   ⚠️ Trailing failed: {result.get('retMsg', 'unknown error')}")
+            except Exception as e:
+                print(f"   ❌ Trailing error: {e}")
+        
+        # === PARTIAL CLOSE ===
+        # 1. При +1.7R → 35%
+        if r_multiple >= TRAILING['partial_close_r']:
+            partial_key = f"partial_closed_{p['entry']}"
+            state = load_state()
+            if not state.get(partial_key):
+                partial_qty = round(p['size'] * TRAILING['partial_close_pct'] / 100, 3)
+                if partial_qty >= 0.001:
+                    close_result = close_position(side, partial_qty)
+                    if close_result.get('retCode') == 0:
+                        print(f"   📊 Частичная фиксация: {TRAILING['partial_close_pct']}% ({partial_qty} BTC) при +{r_multiple:.1f}R")
+                        state[partial_key] = True
+                        state['trades'].append({
+                            'time': datetime.now().isoformat(),
+                            'action': 'PARTIAL_CLOSE',
+                            'closed_pnl': p['pnl'] * TRAILING['partial_close_pct'] / 100,
+                            'reason': f'partial_close_at_{r_multiple:.1f}R',
+                            'side': side,
+                            'qty': partial_qty,
+                            'price': mark
+                        })
+                        save_state(state)
+        
+        # 2. При +3R → 30%
+        partial_key_2 = f"partial_closed_2_{p['entry']}"
+        if r_multiple >= TRAILING['partial_close_2_r'] and not state.get(partial_key_2):
+            state = load_state()
+            if not state.get(partial_key_2):
+                partial_qty = round(p['size'] * TRAILING['partial_close_2_pct'] / 100, 3)
+                if partial_qty >= 0.001:
+                    close_result = close_position(side, partial_qty)
+                    if close_result.get('retCode') == 0:
+                        print(f"   📊 2-я фиксация: {TRAILING['partial_close_2_pct']}% ({partial_qty} BTC) при +{r_multiple:.1f}R")
+                        state[partial_key_2] = True
+                        state['trades'].append({
+                            'time': datetime.now().isoformat(),
+                            'action': 'PARTIAL_CLOSE_2',
+                            'closed_pnl': p['pnl'] * TRAILING['partial_close_2_pct'] / 100,
+                            'reason': f'partial_close_2_at_{r_multiple:.1f}R',
+                            'side': side,
+                            'qty': partial_qty,
+                            'price': mark
+                        })
+                        save_state(state)
+    
+    # Сохранить состояние после обработки всех позиций
+    save_state(state)
+
+
+if __name__ == '__main__':
+    main()
+
 LOSS_COOLDOWN_HOURS = 4  # Пауза после серии убытков (часы)
 TRAIL_COOLDOWN = 60  # Минимальный интервал между обновлениями trailing (секунды)
 
@@ -869,164 +1034,4 @@ def print_dashboard(dashboard):
     print(f"\n--- По причинам ---")
     for reason, stats in dashboard['by_reason'].items():
         print(f"  {reason}: {stats['count']} шт, PnL ${stats['pnl']:,.2f}")
-TRAILING = {
-    # Основные настройки
-    'enabled': True,
-    'activation_r': 1.0,               # Начинать трейлинг после +1.0R
-    
-    # SL/TP расстояния
-    'sl_distance_pct': 1.5,            # SL = цена - 1.5%
-    'tp_distance_pct': 2.0,            # TP = цена + 2.0%
-    
-    # Режим трейлинга
-    'trail_only_up': True,             # Двигать только вверх
-    
-    # Partial Close
-    'partial_close_r': 1.7,            # Частичная фиксация при +1.7R
-    'partial_close_pct': 35,           # Закрыть 35% позиции
-    'partial_close_2_r': 3.0,          # Вторая фиксация при +3R
-    'partial_close_2_pct': 30,         # Закрыть ещё 30%
-    
-    # Volatility
-    'vol_high_factor': 0.7,            # High vol: -30% размера
-    'vol_low_factor': 1.2,             # Low vol: +20% размера
-    
-    # Regime Multiplier
-    'regime_multiplier': {
-        'STRONG_BULL': 1.2,            # Даём тренду больше пространства
-        'BULL': 1.0,                   # Стандарт
-        'NEUTRAL': 0.6,                # Tighter в боковике
-        'BEAR': 1.0,                   # Стандарт
-        'STRONG_BEAR': 1.2,            # Больше пространства для шортов
-    },
-}
 
-def manage_trailing_stop(positions, analysis):
-    """Гибридный Trailing Stop + TP с regime multiplier"""
-    if not positions or not analysis or not TRAILING["enabled"]:
-        return
-    
-    # Получить regime
-    regime = load_regime()
-    regime_name = regime.get("regime", "NEUTRAL")
-    
-    # === REGIME FILTER ===
-    if regime_name in ["NEUTRAL", "RANGE", "STRONG_BEAR"]:
-        return  # Не трейлим в этих режимах
-    
-    multiplier = TRAILING["regime_multiplier"].get(regime_name, 1.0)
-    
-    atr_val = analysis.get('atr') or 200
-    state = load_state()
-    
-    for p in positions:
-        entry = p['entry']
-        mark = p['mark']
-        side = p['side']
-        
-        # Рассчитать R
-        risk_per_unit = atr_val * 1.9
-        if risk_per_unit <= 0:
-            continue
-        
-        if side == 'Buy':
-            r_multiple = (mark - entry) / risk_per_unit
-        else:
-            r_multiple = (entry - mark) / risk_per_unit
-        
-        # Проверка: трейлинг активируется при +1.0R
-        if r_multiple < TRAILING['activation_r']:
-            continue
-        
-        # Рассчитать расстояния с regime multiplier
-        sl_dist = TRAILING['sl_distance_pct'] * multiplier
-        tp_dist = TRAILING['tp_distance_pct'] * multiplier
-        
-        # Rate limit: проверяем интервал между обновлениями
-        last_trail_key = f"last_trail_{p['entry']}"
-        last_trail_time = state.get(last_trail_key, 0)
-        if time.time() - last_trail_time < TRAIL_COOLDOWN:
-            continue  # Пропустить, если прошло менее TRAIL_COOLDOWN секунд
-
-        # === TRAILING SL ===
-        if side == "Buy":
-            new_sl = mark * (1 - sl_dist / 100)
-        else:
-            new_sl = mark * (1 + sl_dist / 100)
-        
-        current_sl = p.get("stopLoss", 0)
-        sl_valid = (side == "Buy" and new_sl > entry and (current_sl == 0 or new_sl > current_sl * 1.001)) or \
-                   (side == "Sell" and new_sl < entry and (current_sl == 0 or new_sl < current_sl * 0.999))
-        
-        # === TRAILING TP ===
-        if side == "Buy":
-            new_tp = mark * (1 + tp_dist / 100)
-        else:
-            new_tp = mark * (1 - tp_dist / 100)
-        
-        # Один запрос API для SL + TP
-        if sl_valid:
-            try:
-                result = set_trading_stop(sl=new_sl, tp=new_tp)
-                if result.get("retCode") == 0:
-                    dist_to_tp = abs(new_tp - mark) / mark * 100
-                    log_msg = f"[{regime_name} x{multiplier:.1f}] +{r_multiple:.1f}R | SL ${new_sl:,.2f} ({sl_dist:.1f}%) | TP ${new_tp:,.2f} ({dist_to_tp:.1f}%)"
-                    print(f"   🔒 Trailing {log_msg}")
-                    # Запись в лог-файл
-                    os.makedirs(os.path.expanduser("~/.hermes/profiles/trader/logs"), exist_ok=True)
-                    with open(os.path.expanduser("~/.hermes/profiles/trader/logs/trailing.log"), "a") as lf:
-                        lf.write(f"{datetime.now().isoformat()} | {side} {p['size']} BTC @ ${entry:,.2f} | {log_msg}\n")
-                    state[last_trail_key] = time.time()
-                else:
-                    print(f"   ⚠️ Trailing failed: {result.get('retMsg', 'unknown error')}")
-            except Exception as e:
-                print(f"   ❌ Trailing error: {e}")
-        
-        # === PARTIAL CLOSE ===
-        # 1. При +1.7R → 35%
-        if r_multiple >= TRAILING['partial_close_r']:
-            partial_key = f"partial_closed_{p['entry']}"
-            state = load_state()
-            if not state.get(partial_key):
-                partial_qty = round(p['size'] * TRAILING['partial_close_pct'] / 100, 3)
-                if partial_qty >= 0.001:
-                    close_result = close_position(side, partial_qty)
-                    if close_result.get('retCode') == 0:
-                        print(f"   📊 Частичная фиксация: {TRAILING['partial_close_pct']}% ({partial_qty} BTC) при +{r_multiple:.1f}R")
-                        state[partial_key] = True
-                        state['trades'].append({
-                            'time': datetime.now().isoformat(),
-                            'action': 'PARTIAL_CLOSE',
-                            'closed_pnl': p['pnl'] * TRAILING['partial_close_pct'] / 100,
-                            'reason': f'partial_close_at_{r_multiple:.1f}R',
-                            'side': side,
-                            'qty': partial_qty,
-                            'price': mark
-                        })
-                        save_state(state)
-        
-        # 2. При +3R → 30%
-        partial_key_2 = f"partial_closed_2_{p['entry']}"
-        if r_multiple >= TRAILING['partial_close_2_r'] and not state.get(partial_key_2):
-            state = load_state()
-            if not state.get(partial_key_2):
-                partial_qty = round(p['size'] * TRAILING['partial_close_2_pct'] / 100, 3)
-                if partial_qty >= 0.001:
-                    close_result = close_position(side, partial_qty)
-                    if close_result.get('retCode') == 0:
-                        print(f"   📊 2-я фиксация: {TRAILING['partial_close_2_pct']}% ({partial_qty} BTC) при +{r_multiple:.1f}R")
-                        state[partial_key_2] = True
-                        state['trades'].append({
-                            'time': datetime.now().isoformat(),
-                            'action': 'PARTIAL_CLOSE_2',
-                            'closed_pnl': p['pnl'] * TRAILING['partial_close_2_pct'] / 100,
-                            'reason': f'partial_close_2_at_{r_multiple:.1f}R',
-                            'side': side,
-                            'qty': partial_qty,
-                            'price': mark
-                        })
-                        save_state(state)
-
-
-if __name__ == '__main__':
-    main()
