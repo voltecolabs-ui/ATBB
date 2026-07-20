@@ -30,26 +30,40 @@ def fetch_rss(url, timeout=10):
     except Exception as e:
         return None
 
-def parse_rss(xml_content):
-    """Парсить RSS и извлечь статьи"""
+def parse_rss(xml_content, max_age_hours=24):
+    """Парсить RSS и извлечь статьи (только свежие)"""
     articles = []
     try:
         root = ET.fromstring(xml_content)
-        for item in root.findall('.//item')[:5]:  # Берём последние 5
+        now = datetime.utcnow()
+        
+        for item in root.findall('.//item')[:10]:  # Берём до 10
             title = item.find('title')
             link = item.find('link')
             pub_date = item.find('pubDate')
             description = item.find('description')
             
+            # Проверка свежести новости
+            date_str = pub_date.text if pub_date is not None else ''
+            if date_str:
+                try:
+                    from email.utils import parsedate_to_datetime
+                    article_date = parsedate_to_datetime(date_str)
+                    age_hours = (now - article_date.replace(tzinfo=None)).total_seconds() / 3600
+                    if age_hours > max_age_hours:
+                        continue  # Пропустить старую новость
+                except:
+                    pass  # Если не удалось распарсить дату - берём новость
+            
             articles.append({
                 'title': title.text if title is not None else 'Без заголовка',
                 'link': link.text if link is not None else '',
-                'date': pub_date.text if pub_date is not None else '',
+                'date': date_str,
                 'description': (description.text[:200] + '...') if description is not None and description.text else ''
             })
     except Exception as e:
         pass
-    return articles
+    return articles[:5]  # Возвращаем максимум 5 свежих
 
 def check_btc_news():
     """Проверить новости о BTC"""
