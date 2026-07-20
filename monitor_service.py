@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """BTC Monitor Service - Фоновый мониторинг с алертами и health-check"""
 import urllib.request, json, hmac, hashlib, time, os, sys
+HERMES_HOME = os.environ.get("HERMES_HOME", os.path.expanduser("~/.hermes/profiles/trader"))
 
 # Конфигурация
 env = {}
