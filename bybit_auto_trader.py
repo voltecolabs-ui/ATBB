@@ -36,13 +36,23 @@ RISK_RULES = {
     'max_daily_losses': 2,
     'force_close_loss_pct': -1.0,
     'take_profit_alert_pct': 5.0,
-    'daily_loss_limit_pct': 3.0,      # Макс. дневной убыток % от баланса
-    'weekly_loss_limit_pct': 7.0,     # Макс. недельный убыток % от баланса
-    'max_drawdown_pct': 15.0,         # Макс. просадка от пика % - Kill Switch
-    'position_max_hours': 48,         # Макс. время позиции (часы) без прибыли
-    'min_volume_ratio': 1.25,           # Мин. объём для входа
-    'max_daily_trades': 2,              # Макс. сделок в день
+    'daily_loss_limit_pct': 3.0,
+    'weekly_loss_limit_pct': 7.0,
+    'max_drawdown_pct': 15.0,
+    'position_max_hours': 48,
+    'min_volume_ratio': 1.25,
+    'max_daily_trades': 2,
 }
+
+# Загрузка из config.yaml (перезаписывает дефолты)
+try:
+    _cfg = load_config()
+    if _cfg and 'risk' in _cfg:
+        for k, v in _cfg['risk'].items():
+            if k in RISK_RULES:
+                RISK_RULES[k] = v
+except (IOError, OSError, KeyError):
+    pass
 TRAILING = {
     # Основные настройки
     'enabled': True,
