@@ -889,17 +889,21 @@ def check_weekly_loss_limit(state, balance):
     return False, weekly_pnl, weekly_limit
 
 def check_max_drawdown(state, balance):
-    """Проверить максимальную просадку от пика"""
-    peak = balance
+    """Проверить максимальную просадку от пика (исторический максимум)"""
+    initial_balance = 10000  # Начальный баланс для расчёта
+    peak = initial_balance
     max_dd = 0
+    equity = initial_balance
+    
     for trade in state.get('trades', []):
         if trade.get('closed_pnl') is not None:
-            peak += trade['closed_pnl']
-            if peak > balance:
-                peak = balance
-            dd = (balance - peak) / balance * 100 if balance > 0 else 0
+            equity += trade['closed_pnl']
+            if equity > peak:
+                peak = equity
+            dd = (peak - equity) / peak * 100 if peak > 0 else 0
             if dd > max_dd:
                 max_dd = dd
+    
     if max_dd >= RISK_RULES['max_drawdown_pct']:
         return True, max_dd
     return False, max_dd
