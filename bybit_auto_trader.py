@@ -917,6 +917,7 @@ def manage_trailing_stop(positions, analysis):
     multiplier = TRAILING["regime_multiplier"].get(regime_name, 1.0)
     
     atr_val = analysis.get('atr') or 200
+    state = load_state()
     
     for p in positions:
         entry = p['entry']
@@ -943,7 +944,6 @@ def manage_trailing_stop(positions, analysis):
         
         # Rate limit: проверяем интервал между обновлениями
         last_trail_key = f"last_trail_{p['entry']}"
-        state = load_state()
         last_trail_time = state.get(last_trail_key, 0)
         if time.time() - last_trail_time < TRAIL_COOLDOWN:
             continue  # Пропустить, если прошло менее TRAIL_COOLDOWN секунд
@@ -977,7 +977,6 @@ def manage_trailing_stop(positions, analysis):
                     with open(os.path.expanduser("~/.hermes/profiles/trader/logs/trailing.log"), "a") as lf:
                         lf.write(f"{datetime.now().isoformat()} | {side} {p['size']} BTC @ ${entry:,.2f} | {log_msg}\n")
                     state[last_trail_key] = time.time()
-                    save_state(state)
                 else:
                     print(f"   ⚠️ Trailing failed: {result.get('retMsg', 'unknown error')}")
             except Exception as e:
