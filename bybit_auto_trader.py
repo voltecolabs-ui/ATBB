@@ -284,7 +284,7 @@ def get_btc_price():
         return {'price': float(t.get('lastPrice', 0)), 'change': float(t.get('price24hPcnt', 0)) * 100}
     return None
 
-def get_klines(interval='15', limit=100):
+def get_klines(interval='240', limit=100):
     r = bybit_request('/v5/market/kline', {'category': 'linear', 'symbol': 'BTCUSDT', 'interval': interval, 'limit': str(limit)})
     if r.get('result') and r['result'].get('list'):
         return [{'open': float(k[1]), 'high': float(k[2]), 'low': float(k[3]), 'close': float(k[4]), 'volume': float(k[5])} for k in r['result']['list']]
@@ -597,7 +597,7 @@ def load_regime():
         return _regime_cache
     
     print("⚠️ Regime не найден, рассчитываем fallback")
-    klines = get_klines('15', 200)
+    klines = get_klines('240', 200)
     _regime_cache = fallback_regime(klines)
     _regime_cache_time = now
     return _regime_cache
@@ -632,7 +632,7 @@ def is_trading_hours():
     return 8 <= hour <= 20
 
 def analyze():
-    price = get_btc_price(); klines = get_klines('15', 200)
+    price = get_btc_price(); klines = get_klines('240', 200)
     funding = get_funding_rate(); oi = get_open_interest()
     if not price or not klines: return None
     closes = [k['close'] for k in klines]
