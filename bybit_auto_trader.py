@@ -904,7 +904,6 @@ def main():
     dashboard = performance_dashboard(state)
     if dashboard and dashboard['total_trades'] >= 5:
         print_dashboard(dashboard)
-        return
 
     conf = sig.get('confidence', 50)
     print(f"\n🎯 Сигнал: {sig['action']} ({conf:.1f}%)")
