@@ -85,6 +85,18 @@ TRAILING = {
     },
 }
 
+# Загрузка TRAILING из config.yaml (перезаписывает дефолты)
+try:
+    _cfg = load_config()
+    if _cfg and 'trailing' in _cfg:
+        for k, v in _cfg['trailing'].items():
+            if k in TRAILING and k != 'regime_multiplier':
+                TRAILING[k] = v
+            elif k == 'regime_multiplier' and isinstance(v, dict):
+                TRAILING['regime_multiplier'].update(v)
+except (IOError, OSError, KeyError):
+    pass
+
 def manage_trailing_stop(positions, analysis):
     """Гибридный Trailing Stop + TP с regime multiplier"""
     if not positions or not analysis or not TRAILING["enabled"]:
