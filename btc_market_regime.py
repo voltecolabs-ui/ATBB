@@ -253,6 +253,13 @@ def build_prompt(market_data, news, regime):
 
     news_str = "\n".join(f"- {n}" for n in news) if news else "- Нет свежих новостей"
 
+    dxy_val = market_data.get("dxy")
+    dxy_str = f"{dxy_val:.2f}" if dxy_val else "N/A"
+    
+    etf_data = market_data.get("etf_flows", {})
+    etf_source = etf_data.get("source", "unavailable")
+    etf_count = len(etf_data.get("data", []))
+    
     return f"""Определи Market Regime для BTC/USDT на основе реальных данных рынка.
 
 ## ТЕКУЩИЕ ДАННЫЕ РЫНКА:
@@ -266,6 +273,8 @@ def build_prompt(market_data, news, regime):
 - Volume ratio: {market_data.get('volume_ratio', 1.0):.2f}x average
 - Funding rate: {market_data.get('funding', 0):.6f}%
 - Open Interest: {market_data.get('oi', 0):,.0f} контрактов
+- DXY (индекс доллара): {dxy_str}
+- ETF данные: {etf_source} ({etf_count} записей)
 
 ## СВЕЖИЕ НОВОСТИ:
 {news_str}
