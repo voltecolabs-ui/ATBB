@@ -673,7 +673,7 @@ def signal(analysis, positions, state):
         return {"action": "WAIT", "reason": f"Макс. сделок в день: {daily_trades}/{RISK_RULES["max_daily_trades"]}"}
     
     if not is_trading_hours():
-        return {"action": "WAIT", "reason": "Вне торговых часов (08:00-20:00 UTC)"}
+        return {"action": "WAIT", "reason": "Вне торговых часов (06:00-22:00 UTC)"}
 
     # === РЕЖИМНЫЙ ФИЛЬТР ===
     regime = load_regime()

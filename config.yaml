@@ -46,8 +46,8 @@ confidence:
 
 # Time Filter: торговые часы (UTC)
 trading_hours:
-  start: 8                    # Начало торговли (08:00 UTC)
-  end: 20                     # Конец торговли (20:00 UTC)
+  start: 6                    # Начало торговли (06:00 UTC, Азия)
+  end: 22                     # Конец торговли (22:00 UTC, США)
 
 # Loss Cooldown: пауза после серии убытков
 cooldown:
