@@ -253,7 +253,7 @@ def bybit_request(endpoint, params=None, data=None, max_retries=3):
                 return json.loads(r.read().decode())
         except Exception as e:
             if attempt < max_retries - 1:
-                wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s
+                wait_time = (2 ** attempt) + random.uniform(0, 1)  # Exponential backoff + jitter
                 print(f"   ⚠️ API retry {attempt + 1}/{max_retries}: {e} (wait {wait_time}s)")
                 time.sleep(wait_time)
             else:
