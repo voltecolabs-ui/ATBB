@@ -4,7 +4,7 @@
 
 # Risk Management
 risk:
-  max_risk_percent: 0.5       # Макс. риск на сделку в %% (0.5 = 0.5%% от баланса, формула: balance * 0.5 / 100)
+  max_risk_percent: 0.5       # Риск в ПРОЦЕНТАХ: 0.5 = 0.5%% от баланса ($10,000 × 0.5 / 100 = $50)
   min_rr_ratio: 2.0           # Минимальный Risk:Reward
   max_positions: 1            # Макс. открытых позиций
   max_daily_losses: 2         # Макс. убытков подряд (пауза)
