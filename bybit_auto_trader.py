@@ -168,7 +168,7 @@ def manage_trailing_stop(positions, analysis):
                 result = set_trading_stop(sl=new_sl, tp=new_tp)
                 if result.get("retCode") == 0:
                     dist_to_tp = abs(new_tp - mark) / mark * 100
-                    log_msg = f"[{regime_name} x{multiplier:.1f}] +{r_multiple:.1f}R | SL ${new_sl:,.2f} ({sl_dist:.1f}%) | TP ${new_tp:,.2f} ({dist_to_tp:.1f}%)"
+                    log_msg = f"[{regime_name} x{multiplier:.1f}] R={r_multiple:.2f} | SL ${new_sl:,.2f} ({sl_dist:.1f}%) | TP ${new_tp:,.2f} ({dist_to_tp:.1f}%) | Entry ${entry:,.2f}"
                     print(f"   🔒 Trailing {log_msg}")
                     # Запись в лог-файл
                     os.makedirs(os.path.expanduser("~/.hermes/profiles/trader/logs"), exist_ok=True)
