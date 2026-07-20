@@ -81,6 +81,44 @@ def get_open_interest():
         return float(r["result"]["list"][0].get("openInterest", 0))
     return 0
 
+def get_dxy():
+    """Получить индекс доллара (DXY) через прокси"""
+    try:
+        req = urllib.request.Request(
+            "https://api.exchangerate.host/latest?base=USD&symbols=EUR,GBP,JPY",
+            headers={"User-Agent": "Mozilla/5.0"}
+        )
+        with urllib.request.urlopen(req, timeout=10) as r:
+            data = json.loads(r.read().decode())
+            if data.get("rates"):
+                # Упрощённый расчёт DXY (евро весит ~57%)
+                eur = data["rates"].get("EUR", 1)
+                dxy = 50.14348112 / (eur ** 0.576)  # Формула DXY
+                return round(dxy, 2)
+    except Exception as e:
+        print(f"  [DXY error] {e}")
+    return None
+
+def get_etf_flows():
+    """Получить данные по ETF притокам/оттокам (заглушка)"""
+    # В реальном проекте использовать Farside Investors API
+    # или CoinGlass API для данных по BTC ETF
+    try:
+        # Попытка получить данные с CoinGlass (бесплатный API)
+        req = urllib.request.Request(
+            "https://fapi.coinglass.com/api/funding/v2/bitcoin-funding-rate",
+            headers={"User-Agent": "Mozilla/5.0"}
+        )
+        with urllib.request.urlopen(req, timeout=10) as r:
+            data = json.loads(r.read().decode())
+            if data.get("data"):
+                return {"source": "coinglass", "data": data["data"][:5]}
+    except:
+        pass
+    
+    # Fallback: нет данных
+    return {"source": "unavailable", "data": []}
+
 def ema(prices, period):
     if len(prices) < period:
         return None
