@@ -906,8 +906,18 @@ def main():
             regime_risk = 0.15  # Снижаем риск в нейтральном режиме
         qty = calc_size(balance["equity"], sig["entry"], sig["sl"], regime_risk, analysis.get("vol_ratio", 1.0))
         if qty > 0:
+            # === ПРОВЕРКА ЛИКВИДАЦИИ НОВОЙ ПОЗИЦИИ ===
+            # Для Unified Trading Account (1x) ликвидация невозможна
+            # Проверяем при плече > 1x
+            approx_leverage = (qty * sig['entry']) / balance['equity'] if balance['equity'] > 0 else 1
+            if approx_leverage > 1:
+                approx_liq_distance = 100 / approx_leverage  # При 10x = 10% от цены
+                if approx_liq_distance < 15:
+                    print(f"❌ Плечо {approx_leverage:.1f}x слишком высокое, ликвидация {approx_liq_distance:.1f}% — отмена")
+                    state['last_analysis'] = analysis; save_state(state); return
+            
             side = 'Buy' if sig['action'] == 'LONG' else 'Sell'
-            print(f'\n{"🟢" if sig["action"] == "LONG" else "🔴"} ОТКРЫВАЮ {sig["action"]} {qty} BTC...')
+            print(f'\n{"🟢" if sig["action"] == "LONG" else "🔴"} ОТКРЫВАЮ {sig["action"]} {qty} BTC (плечо: {approx_leverage:.1f}x)...')
             result = place_order(side, qty)
             if result.get('retCode') != 0 and 'not enough' in str(result.get('retMsg', '')).lower():
                 qty = round(qty * 0.5, 3)
