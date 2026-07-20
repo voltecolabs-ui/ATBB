@@ -141,7 +141,9 @@ def manage_trailing_stop(positions, analysis):
         # Rate limit: проверяем интервал между обновлениями
         last_trail_key = f"last_trail_{p['entry']}"
         last_trail_time = state.get(last_trail_key, 0)
-        if time.time() - last_trail_time < TRAIL_COOLDOWN:
+        # Динамический cooldown: больше волатильность = реже обновления
+        dynamic_cooldown = TRAIL_COOLDOWN_BASE + (atr_val * TRAILING['trailing_tp_distance_pct'] / 10)
+        if time.time() - last_trail_time < dynamic_cooldown:
             continue  # Пропустить, если прошло менее TRAIL_COOLDOWN секунд
 
         # === TRAILING SL ===
@@ -228,7 +230,8 @@ def manage_trailing_stop(positions, analysis):
 LOSS_COOLDOWN_HOURS = 4  # Пауза после серии убытков (часы)
 _regime_cache = None  # Кэш для fallback regime
 _regime_cache_time = 0  # Время последнего обновления кэша
-TRAIL_COOLDOWN = 60  # Минимальный интервал между обновлениями trailing (секунды)
+TRAIL_COOLDOWN_BASE = 60  # Базовый интервал (секунды)
+TRAIL_COOLDOWN_ATR_FACTOR = 0.5  # Множитель для ATR (высокая волатильность = реже)
 
 # Trailing Stop настройки
 
