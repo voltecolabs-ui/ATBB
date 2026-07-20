@@ -666,8 +666,10 @@ def signal(analysis, positions, state):
     # === ФИЛЬТР ВРЕМЕНИ ===
 
     # === ФИЛЬТР ОБЪЁМА ===
-    if analysis.get("volume", 1.0) < RISK_RULES["min_volume_ratio"]:
-        return {"action": "WAIT", "reason": f"Низкий объём: {analysis.get("volume", 1.0):.2f}x < {RISK_RULES["min_volume_ratio"]}x"}
+    vol = analysis.get("volume", 1.0)
+    min_vol = RISK_RULES["min_volume_ratio"]
+    if vol < min_vol:
+        return {"action": "WAIT", "reason": f"Низкий объём: {vol:.2f}x < {min_vol}x"}
 
     # === МАКС. СДЕЛОК В ДЕНЬ ===
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
