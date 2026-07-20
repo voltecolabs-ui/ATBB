@@ -672,18 +672,6 @@ def signal(analysis, positions, state):
     if daily_trades >= RISK_RULES["max_daily_trades"]:
         return {"action": "WAIT", "reason": f"Макс. сделок в день: {daily_trades}/{RISK_RULES["max_daily_trades"]}"}
     
-    # === ПРОВЕРКА ЛИКВИДАЦИИ ===
-    for p in positions:
-        liq_price = p.get("liq", 0)
-        if liq_price > 0:
-            entry = p["entry"]
-            if p["side"] == "Buy":
-                liq_distance = abs(entry - liq_price) / entry * 100
-            else:
-                liq_distance = abs(entry - liq_price) / entry * 100
-            if liq_distance < 15:
-                return {"action": "WAIT", "reason": f"Ликвидация слишком близко: {liq_distance:.1f}%"}
-    
     if not is_trading_hours():
         return {"action": "WAIT", "reason": "Вне торговых часов (08:00-20:00 UTC)"}
 
