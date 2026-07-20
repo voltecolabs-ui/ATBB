@@ -845,6 +845,12 @@ def main():
     dd_ok, max_dd = check_max_drawdown(state, balance["equity"])
     if dd_ok:
         print(f"🔴 Max Drawdown: {max_dd:.1f}% / {RISK_RULES["max_drawdown_pct"]}% — KILL SWITCH")
+        # Закрыть все открытые позиции
+        for p in positions:
+            close_result = close_position(p['side'], p['size'])
+            if close_result.get('retCode') == 0:
+                print(f"   🔴 Закрыл: {p['side']} {p['size']} BTC (KILL SWITCH)")
+                state['trades'].append({'time': datetime.now().isoformat(), 'action': 'CLOSE', 'closed_pnl': p['pnl'], 'reason': 'kill_switch', 'side': p['side'], 'qty': p['size'], 'price': p['mark']})
         state["last_analysis"] = analysis; save_state(state); return
     sig = signal(analysis, positions, state)
     print(f"💰 Баланс: ${balance['equity']:,.2f} | PnL: ${balance['pnl']:,.2f}")
