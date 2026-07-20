@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Bybit BTC Auto Trader v10 - EMA, RSI, MACD, Bollinger, ATR, StochRSI, OI, Funding"""
-import os, time, json, hashlib, hmac, urllib.request
+import os, time, json, hashlib, hmac, urllib.request, random
 import yaml
 from datetime import datetime, timedelta, timezone
 
@@ -142,7 +142,7 @@ def manage_trailing_stop(positions, analysis):
         last_trail_key = f"last_trail_{p['entry']}"
         last_trail_time = state.get(last_trail_key, 0)
         # Динамический cooldown: больше волатильность = реже обновления
-        dynamic_cooldown = TRAIL_COOLDOWN_BASE + (atr_val * TRAILING['trailing_tp_distance_pct'] / 10)
+        dynamic_cooldown = TRAIL_COOLDOWN_BASE + (atr_val * TRAILING['tp_distance_pct'] / 10)
         if time.time() - last_trail_time < dynamic_cooldown:
             continue  # Пропустить, если прошло менее TRAIL_COOLDOWN секунд
 
