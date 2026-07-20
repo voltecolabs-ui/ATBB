@@ -766,7 +766,7 @@ def signal(analysis, positions, state):
     return s
 
 def place_order(side, qty, order_type='Market', price=None):
-    """Разместить ордер с контролем проскальзывания"""
+    """Разместить ордер"""
     data = {
         'category': 'linear',
         'symbol': 'BTCUSDT',
@@ -774,18 +774,9 @@ def place_order(side, qty, order_type='Market', price=None):
         'orderType': order_type,
         'qty': str(qty)
     }
-    # Для лимитных ордеров добавляем цену
+    # Только для лимитных ордеров добавляем цену
     if price and order_type == 'Limit':
         data['price'] = str(price)
-    # Для Market ордеров добавляем допуск проскальзывания 0.5%
-    elif order_type == 'Market':
-        ticker = bybit_request('/v5/market/tickers', 'category=linear&symbol=BTCUSDT')
-        if ticker.get('result') and ticker['result'].get('list'):
-            current_price = float(ticker['result']['list'][0].get('lastPrice', 0))
-            if side == 'Buy':
-                data['price'] = str(current_price * 1.005)  # +0.5% допуск
-            else:
-                data['price'] = str(current_price * 0.995)  # -0.5% допуск
     return bybit_request('/v5/order/create', data=data)
 
 def close_position(side, qty):
