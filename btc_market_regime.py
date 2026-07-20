@@ -390,6 +390,10 @@ def collect_market_data():
     funding = get_funding()
     oi = get_open_interest()
 
+    # Получить DXY и ETF данные
+    dxy = get_dxy()
+    etf = get_etf_flows()
+    
     data = {
         "price": price_data["price"],
         "change_24h": price_data["change_24h"],
@@ -404,6 +408,8 @@ def collect_market_data():
         "volume_ratio": volume_ratio(klines_1h) if klines_1h else 1.0,
         "funding": funding,
         "oi": oi,
+        "dxy": dxy,
+        "etf_flows": etf,
     }
 
     print(f"  Цена: ${data['price']:,.2f} ({data['change_24h']:+.2f}%)")
