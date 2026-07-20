@@ -670,6 +670,19 @@ def signal(analysis, positions, state):
     daily_trades = sum(1 for t in state.get("trades", []) if t.get("time", "").startswith(today))
     if daily_trades >= RISK_RULES["max_daily_trades"]:
         return {"action": "WAIT", "reason": f"Макс. сделок в день: {daily_trades}/{RISK_RULES["max_daily_trades"]}"}
+    
+    # === ПРОВЕРКА ЛИКВИДАЦИИ ===
+    for p in positions:
+        liq_price = p.get("liq", 0)
+        if liq_price > 0:
+            entry = p["entry"]
+            if p["side"] == "Buy":
+                liq_distance = abs(entry - liq_price) / entry * 100
+            else:
+                liq_distance = abs(entry - liq_price) / entry * 100
+            if liq_distance < 15:
+                return {"action": "WAIT", "reason": f"Ликвидация слишком близко: {liq_distance:.1f}%"}
+    
     if not is_trading_hours():
         return {"action": "WAIT", "reason": "Вне торговых часов (08:00-20:00 UTC)"}
 
@@ -702,11 +715,12 @@ def signal(analysis, positions, state):
     lv = sv = 0
     price_above_trend = bool(analysis['ema55'] and analysis['ema200'] and analysis['price'] > analysis['ema55'] > analysis['ema200'])
     price_below_trend = bool(analysis['ema55'] and analysis['ema200'] and analysis['price'] < analysis['ema55'] < analysis['ema200'])
-    # Тренд (важный, но уже учитывается в price_above_trend)
-    if analysis['trend'] == 'bullish' and price_above_trend: lv += 2
-    elif analysis['trend'] == 'bearish' and price_below_trend: sv += 2
+    # Тренд (price_above_trend уже учитывает EMA)
+    # Только подтверждаем направление тренда
+    if analysis['trend'] == 'bullish' and price_above_trend: lv += 1
+    elif analysis['trend'] == 'bearish' and price_below_trend: sv += 1
     
-    # RSI (коррелирует со StochRSI, поэтому вес 1)
+    # RSI (независимый осциллятор)
     if analysis['rsi'] and 45 <= analysis['rsi'] <= 60:
         if price_above_trend: lv += 1
         elif price_below_trend: sv += 1
@@ -715,15 +729,15 @@ def signal(analysis, positions, state):
     elif analysis['rsi'] and analysis['rsi'] > 65 and price_below_trend:
         sv += 1
     
-    # MACD histogram (независимый индикатор)
+    # MACD histogram (подтверждение импульса)
     if analysis['hist'] and analysis['hist'] > 0: lv += 1
     elif analysis['hist'] and analysis['hist'] < 0: sv += 1
     
-    # Bollinger Bands (независимый индикатор)
+    # Bollinger Bands (экстремумы)
     if analysis['bb_lower'] and analysis['price'] < analysis['bb_lower'] and price_above_trend: lv += 1
     elif analysis['bb_upper'] and analysis['price'] > analysis['bb_upper'] and price_below_trend: sv += 1
     
-    # Funding (независимый индикатор)
+    # Funding (контрарианский индикатор)
     if analysis['funding'] < 0: lv += 1
     elif analysis['funding'] > 0.0001: sv += 1
     
@@ -732,9 +746,8 @@ def signal(analysis, positions, state):
         if lv > sv: lv += 1
         elif sv > lv: sv += 1
     
-    # StochRSI (коррелирует с RSI, поэтому вес 0.5)
-    if analysis['stoch_rsi_k'] and analysis['stoch_rsi_k'] < 20 and price_above_trend: lv += 1
-    elif analysis['stoch_rsi_k'] and analysis['stoch_rsi_k'] > 80 and price_below_trend: sv += 1
+    # StochRSI (коррелирует с RSI, поэтому НЕ учитываем)
+    # Анализ показал, что StochRSI и RSI дают одинаковые сигналы
     if lv >= 5 and lv > sv and price_above_trend:
         s['action'] = 'LONG'; s['confidence'] = min(90, 50 + lv * 5)
         # SL от структуры рынка (swing low) + 1% на свип
