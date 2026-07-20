@@ -836,7 +836,7 @@ def main():
         return
 
     conf = sig.get('confidence', 50)
-    print(f"\\n🎯 Сигнал: {sig['action']} ({conf:.1f}%)")
+    print(f"\n🎯 Сигнал: {sig['action']} ({conf:.1f}%)")
     if sig["action"] in ["LONG", "SHORT"] and sig.get("confidence", 0) >= 77:
         regime = load_regime()
         regime_risk = regime.get("risk_pct", 0.5)
