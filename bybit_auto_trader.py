@@ -160,7 +160,6 @@ def manage_trailing_stop(positions, analysis):
         # 1. При +1.7R → 35%
         if r_multiple >= TRAILING['partial_close_r']:
             partial_key = f"partial_closed_{p['entry']}"
-            state = load_state()
             if not state.get(partial_key):
                 partial_qty = round(p['size'] * TRAILING['partial_close_pct'] / 100, 3)
                 if partial_qty >= 0.001:
@@ -182,7 +181,6 @@ def manage_trailing_stop(positions, analysis):
         # 2. При +3R → 30%
         partial_key_2 = f"partial_closed_2_{p['entry']}"
         if r_multiple >= TRAILING['partial_close_2_r'] and not state.get(partial_key_2):
-            state = load_state()
             if not state.get(partial_key_2):
                 partial_qty = round(p['size'] * TRAILING['partial_close_2_pct'] / 100, 3)
                 if partial_qty >= 0.001:
