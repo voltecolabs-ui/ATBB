@@ -99,25 +99,76 @@ def get_dxy():
         print(f"  [DXY error] {e}")
     return None
 
-def get_etf_flows():
-    """Получить данные по ETF притокам/оттокам (заглушка)"""
-    # В реальном проекте использовать Farside Investors API
-    # или CoinGlass API для данных по BTC ETF
+def get_fear_greed_index():
+    """Получить Fear & Greed Index"""
     try:
-        # Попытка получить данные с CoinGlass (бесплатный API)
         req = urllib.request.Request(
-            "https://fapi.coinglass.com/api/funding/v2/bitcoin-funding-rate",
+            "https://api.alternative.me/fng/?limit=7",
             headers={"User-Agent": "Mozilla/5.0"}
         )
         with urllib.request.urlopen(req, timeout=10) as r:
             data = json.loads(r.read().decode())
             if data.get("data"):
-                return {"source": "coinglass", "data": data["data"][:5]}
-    except:
-        pass
+                return {
+                    "current": int(data["data"][0]["value"]),
+                    "classification": data["data"][0]["value_classification"],
+                    "history": [{"value": int(d["value"]), "date": d["timestamp"]} for d in data["data"][:7]]
+                }
+    except Exception as e:
+        print(f"  [F&G error] {e}")
+    return None
+
+def get_btc_dominance():
+    """Получить доминацию BTC через CoinGecko"""
+    try:
+        req = urllib.request.Request(
+            "https://api.coingecko.com/api/v3/global",
+            headers={"User-Agent": "Mozilla/5.0"}
+        )
+        with urllib.request.urlopen(req, timeout=10) as r:
+            data = json.loads(r.read().decode())
+            if data.get("data"):
+                return {
+                    "btc_dominance": data["data"].get("market_cap_percentage", {}).get("btc", 0),
+                    "total_market_cap": data["data"].get("total_market_cap", {}).get("usd", 0),
+                    "total_volume": data["data"].get("total_volume", {}).get("usd", 0),
+                }
+    except Exception as e:
+        print(f"  [Dominance error] {e}")
+    return None
+
+def get_etf_flows():
+    """Получить данные по рыночному сентименту и потокам капитала"""
+    result = {}
     
-    # Fallback: нет данных
-    return {"source": "unavailable", "data": []}
+    # Fear & Greed Index
+    fng = get_fear_greed_index()
+    if fng:
+        result["fear_greed"] = fng
+    
+    # BTC Dominance
+    dominance = get_btc_dominance()
+    if dominance:
+        result["dominance"] = dominance
+    
+    # Оценка потоков на основе FNG и dominance
+    if fng and dominance:
+        fng_value = fng["current"]
+        btc_dom = dominance["btc_dominance"]
+        
+        # Простая эвристика для оценки потоков
+        if fng_value < 25 and btc_dom > 50:
+            result["flow_signal"] = "strong_inflow"  # Страх + высокая доминация = приток в BTC
+        elif fng_value < 40:
+            result["flow_signal"] = "mild_inflow"    # Страх = приток
+        elif fng_value > 70:
+            result["flow_signal"] = "mild_outflow"   # Жадность = отток
+        elif fng_value > 85:
+            result["flow_signal"] = "strong_outflow"  # Экстремальная жадность
+        else:
+            result["flow_signal"] = "neutral"
+    
+    return result if result else {"source": "unavailable"}
 
 def ema(prices, period):
     if len(prices) < period:
@@ -257,8 +308,11 @@ def build_prompt(market_data, news, regime):
     dxy_str = f"{dxy_val:.2f}" if dxy_val else "N/A"
     
     etf_data = market_data.get("etf_flows", {})
-    etf_source = etf_data.get("source", "unavailable")
-    etf_count = len(etf_data.get("data", []))
+    fng = etf_data.get("fear_greed", {})
+    dominance = etf_data.get("dominance", {})
+    flow_signal = etf_data.get("flow_signal", "N/A")
+    fng_value = fng.get("current", "N/A") if fng else "N/A"
+    btc_dom = f"{dominance.get('btc_dominance', 0):.1f}%" if dominance else "N/A"
     
     return f"""Определи Market Regime для BTC/USDT на основе реальных данных рынка.
 
@@ -274,7 +328,9 @@ def build_prompt(market_data, news, regime):
 - Funding rate: {market_data.get('funding', 0):.6f}%
 - Open Interest: {market_data.get('oi', 0):,.0f} контрактов
 - DXY (индекс доллара): {dxy_str}
-- ETF данные: {etf_source} ({etf_count} записей)
+- Fear & Greed Index: {fng_value}
+- BTC Dominance: {btc_dom}
+- Flow Signal: {flow_signal}
 
 ## СВЕЖИЕ НОВОСТИ:
 {news_str}
