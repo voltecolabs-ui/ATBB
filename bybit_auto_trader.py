@@ -881,6 +881,16 @@ def main():
     if closed_any:
         state['last_analysis'] = analysis; save_state(state)
     
+    # === ПРОВЕРКА ЛИКВИДАЦИИ ===
+    for p in positions:
+        liq_price = p.get("liq", 0)
+        if liq_price > 0:
+            entry = p["entry"]
+            liq_distance = abs(entry - liq_price) / entry * 100
+            if liq_distance < 15:
+                print(f"❌ Ликвидация слишком близко: {liq_distance:.1f}% — отмена")
+                state['last_analysis'] = analysis; save_state(state); return
+    
     # Dashboard
     dashboard = performance_dashboard(state)
     if dashboard and dashboard['total_trades'] >= 5:
