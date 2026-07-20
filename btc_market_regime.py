@@ -209,7 +209,7 @@ def volume_ratio(klines, period=20):
 
 def fetch_news():
     """Fetch latest BTC news from RSS feeds"""
-    sys.path.insert(0, "/home/labs/.hermes/scripts")
+    sys.path.insert(0, os.path.join(HERMES_HOME, "scripts"))
     try:
         from btc_news_rss import check_btc_news
         news = check_btc_news()
