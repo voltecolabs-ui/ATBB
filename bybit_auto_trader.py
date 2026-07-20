@@ -737,17 +737,23 @@ def signal(analysis, positions, state):
     elif analysis['stoch_rsi_k'] and analysis['stoch_rsi_k'] > 80 and price_below_trend: sv += 1
     if lv >= 5 and lv > sv and price_above_trend:
         s['action'] = 'LONG'; s['confidence'] = min(90, 50 + lv * 5)
-        atr_buffer = analysis['atr'] * 0.75 if analysis['atr'] else 150
+        # SL от структуры рынка (swing low) + 1% на свип
         swing_low = analysis.get('swing_low') or analysis['support']
-        s['sl'] = min(analysis['price'] - (analysis['atr'] * 1.2 if analysis['atr'] else 250), swing_low - atr_buffer)
+        if swing_low and swing_low > 0:
+            s['sl'] = swing_low * 0.99  # 1% ниже swing low
+        else:
+            s['sl'] = analysis['price'] - (analysis['atr'] * 1.5 if analysis['atr'] else 300)
         risk = abs(analysis['price'] - s['sl'])
         s['tp'] = analysis['price'] + risk * 2.2
         s['reason'] = f'LONG={lv} SHORT={sv}'
     elif sv >= 5 and sv > lv and price_below_trend:
         s['action'] = 'SHORT'; s['confidence'] = min(90, 50 + sv * 5)
-        atr_buffer = analysis['atr'] * 0.75 if analysis['atr'] else 150
+        # SL от структуры рынка (swing high) + 1% на свип
         swing_high = analysis.get('swing_high') or analysis['resistance']
-        s['sl'] = max(analysis['price'] + (analysis['atr'] * 1.2 if analysis['atr'] else 250), swing_high + atr_buffer)
+        if swing_high and swing_high > 0:
+            s['sl'] = swing_high * 1.01  # 1% выше swing high
+        else:
+            s['sl'] = analysis['price'] + (analysis['atr'] * 1.5 if analysis['atr'] else 300)
         risk = abs(s['sl'] - analysis['price'])
         s['tp'] = analysis['price'] - risk * 2.2
         s['reason'] = f'LONG={lv} SHORT={sv}'
