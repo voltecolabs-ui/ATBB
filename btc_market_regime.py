@@ -176,16 +176,27 @@ def score_to_regime(weighted_score, confidence):
         return "STRONG_BEAR", "SHORT", 0.75
 
 def get_high_impact_events():
+    """Определить высоковлиятельные события (приблизительный календарь)"""
     now = datetime.now(timezone.utc)
     events = []
     day = now.day
-    weekday = now.weekday()
-    if day <= 3:
-        events.append("Начало месяца (NFP week)")
-    if weekday == 2 and now.hour >= 17:
+    weekday = now.weekday()  # 0=Пн, 4=Пт
+    
+    # NFP (Non-Farm Payrolls) — первый пятничный день месяца
+    if weekday == 4 and day <= 7:
+        events.append("NFP (Non-Farm Payrolls)")
+    
+    # CPI (Consumer Price Index) — примерно 10-13 число
+    if 10 <= day <= 13:
+        events.append("CPI (Consumer Price Index)")
+    
+    # FOMC — 8 раз в год, обычно среда, 19:00 UTC
+    # Упрощённо: проверяем среду + вторую/четвёртую неделю месяца
+    if weekday == 2 and (8 <= day <= 14 or 22 <= day <= 28):
         events.append("FOMC potential")
-    if day in [10, 11, 12]:
-        events.append("CPI week")
+    
+    # GTC / Другие события — можно добавить позже
+    
     return events
 
 def build_prompt(market_data, news, regime):
