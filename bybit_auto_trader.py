@@ -656,7 +656,11 @@ def main():
     if closed_any:
         state['last_analysis'] = analysis; save_state(state)
     
-    # Dashboard    dashboard = performance_dashboard(state)    if dashboard and dashboard['total_trades'] >= 5:        print_dashboard(dashboard); return
+    # Dashboard
+    dashboard = performance_dashboard(state)
+    if dashboard and dashboard['total_trades'] >= 5:
+        print_dashboard(dashboard)
+        return
 
     conf = sig.get('confidence', 50)
     print(f"\\n🎯 Сигнал: {sig['action']} ({conf:.1f}%)")
@@ -682,7 +686,10 @@ def main():
             else: print(f'❌ {result.get("retMsg")}')
     state['last_analysis'] = analysis; save_state(state)
     
-    # Dashboard    dashboard = performance_dashboard(state)    if dashboard and dashboard['total_trades'] >= 5:        print_dashboard(dashboard)
+    # Dashboard
+    dashboard = performance_dashboard(state)
+    if dashboard and dashboard['total_trades'] >= 5:
+        print_dashboard(dashboard)
 
 def check_daily_loss_limit(state, balance):
     """Проверить дневной лимит убытков"""
