@@ -4,7 +4,8 @@ import urllib.request, json, hmac, hashlib, time, os, sys
 
 # Конфигурация
 env = {}
-with open('/home/labs/.hermes/profiles/trader/.env') as f:
+env_file = os.path.join(HERMES_HOME, '.env')
+with open(env_file) as f:
     for line in f:
         line = line.strip()
         if line and not line.startswith('#') and '=' in line:
