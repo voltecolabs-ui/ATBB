@@ -205,9 +205,6 @@ def manage_trailing_stop(positions, analysis):
     save_state(state)
 
 
-if __name__ == '__main__':
-    main()
-
 LOSS_COOLDOWN_HOURS = 4  # Пауза после серии убытков (часы)
 _regime_cache = None  # Кэш для fallback regime
 _regime_cache_time = 0  # Время последнего обновления кэша
@@ -1046,3 +1043,6 @@ def print_dashboard(dashboard):
     for reason, stats in dashboard['by_reason'].items():
         print(f"  {reason}: {stats['count']} шт, PnL ${stats['pnl']:,.2f}")
 
+
+if __name__ == '__main__':
+    main()
