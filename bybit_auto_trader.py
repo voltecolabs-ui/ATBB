@@ -690,8 +690,11 @@ def signal(analysis, positions, state):
     lv = sv = 0
     price_above_trend = bool(analysis['ema55'] and analysis['ema200'] and analysis['price'] > analysis['ema55'] > analysis['ema200'])
     price_below_trend = bool(analysis['ema55'] and analysis['ema200'] and analysis['price'] < analysis['ema55'] < analysis['ema200'])
-    if analysis['trend'] == 'bullish' and price_above_trend: lv += 3
-    elif analysis['trend'] == 'bearish' and price_below_trend: sv += 3
+    # Тренд (важный, но уже учитывается в price_above_trend)
+    if analysis['trend'] == 'bullish' and price_above_trend: lv += 2
+    elif analysis['trend'] == 'bearish' and price_below_trend: sv += 2
+    
+    # RSI (коррелирует со StochRSI, поэтому вес 1)
     if analysis['rsi'] and 45 <= analysis['rsi'] <= 60:
         if price_above_trend: lv += 1
         elif price_below_trend: sv += 1
@@ -699,15 +702,25 @@ def signal(analysis, positions, state):
         lv += 1
     elif analysis['rsi'] and analysis['rsi'] > 65 and price_below_trend:
         sv += 1
+    
+    # MACD histogram (независимый индикатор)
     if analysis['hist'] and analysis['hist'] > 0: lv += 1
     elif analysis['hist'] and analysis['hist'] < 0: sv += 1
+    
+    # Bollinger Bands (независимый индикатор)
     if analysis['bb_lower'] and analysis['price'] < analysis['bb_lower'] and price_above_trend: lv += 1
     elif analysis['bb_upper'] and analysis['price'] > analysis['bb_upper'] and price_below_trend: sv += 1
+    
+    # Funding (независимый индикатор)
     if analysis['funding'] < 0: lv += 1
     elif analysis['funding'] > 0.0001: sv += 1
+    
+    # Volume (подтверждение)
     if analysis['volume'] > 1.2:
         if lv > sv: lv += 1
         elif sv > lv: sv += 1
+    
+    # StochRSI (коррелирует с RSI, поэтому вес 0.5)
     if analysis['stoch_rsi_k'] and analysis['stoch_rsi_k'] < 20 and price_above_trend: lv += 1
     elif analysis['stoch_rsi_k'] and analysis['stoch_rsi_k'] > 80 and price_below_trend: sv += 1
     if lv >= 5 and lv > sv and price_above_trend:
