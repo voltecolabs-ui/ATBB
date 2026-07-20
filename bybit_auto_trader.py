@@ -675,7 +675,8 @@ def signal(analysis, positions, state):
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     daily_trades = sum(1 for t in state.get("trades", []) if t.get("time", "").startswith(today))
     if daily_trades >= RISK_RULES["max_daily_trades"]:
-        return {"action": "WAIT", "reason": f"Макс. сделок в день: {daily_trades}/{RISK_RULES["max_daily_trades"]}"}
+        max_dt = RISK_RULES["max_daily_trades"]
+        return {"action": "WAIT", "reason": f"Макс. сделок в день: {daily_trades}/{max_dt}"}
     
     if not is_trading_hours():
         return {"action": "WAIT", "reason": "Вне торговых часов (06:00-22:00 UTC)"}
@@ -683,7 +684,9 @@ def signal(analysis, positions, state):
     # === РЕЖИМНЫЙ ФИЛЬТР ===
     regime = load_regime()
     if regime["allowed_direction"] not in ["LONG", "SHORT", "BOTH"] or regime["regime"] in ["NEUTRAL", "RANGE", "STRONG_BEAR"]:
-        return {"action": "WAIT", "reason": f"Regime: {regime["regime"]} ({regime["allowed_direction"]})"}
+        reg_name = regime["regime"]
+        reg_dir = regime["allowed_direction"]
+        return {"action": "WAIT", "reason": f"Regime: {reg_name} ({reg_dir})"}
 
     # === ADX ФИЛЬТР ===
     adx_val = analysis.get("adx")
@@ -846,7 +849,8 @@ def main():
     
     dd_ok, max_dd = check_max_drawdown(state, balance["equity"])
     if dd_ok:
-        print(f"🔴 Max Drawdown: {max_dd:.1f}% / {RISK_RULES["max_drawdown_pct"]}% — KILL SWITCH")
+        max_dd_pct = RISK_RULES["max_drawdown_pct"]
+        print(f"🔴 Max Drawdown: {max_dd:.1f}% / {max_dd_pct}% — KILL SWITCH")
         # Закрыть все открытые позиции
         for p in positions:
             close_result = close_position(p['side'], p['size'])
