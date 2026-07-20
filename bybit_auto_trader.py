@@ -209,6 +209,8 @@ if __name__ == '__main__':
     main()
 
 LOSS_COOLDOWN_HOURS = 4  # Пауза после серии убытков (часы)
+_regime_cache = None  # Кэш для fallback regime
+_regime_cache_time = 0  # Время последнего обновления кэша
 TRAIL_COOLDOWN = 60  # Минимальный интервал между обновлениями trailing (секунды)
 
 # Trailing Stop настройки
@@ -547,6 +549,8 @@ def fallback_regime(klines):
 
 def load_regime():
     """Загрузить рыночный режим из market_regime.json или fallback"""
+    global _regime_cache, _regime_cache_time
+    
     # Попробовать загрузить из файла
     if os.path.exists(REGIME_FILE):
         try:
@@ -569,10 +573,17 @@ def load_regime():
         except (IOError, OSError, json.JSONDecodeError):
             pass
     
-    # Fallback: математический расчёт
-    print("⚠️ Regime не найден, используем fallback")
+    # Fallback: математический расчёт (с кэшированием на 1 час)
+    now = time.time()
+    if _regime_cache and (now - _regime_cache_time) < 3600:
+        print("⚠️ Regime: используем кэшированный fallback")
+        return _regime_cache
+    
+    print("⚠️ Regime не найден, рассчитываем fallback")
     klines = get_klines('15', 200)
-    return fallback_regime(klines)
+    _regime_cache = fallback_regime(klines)
+    _regime_cache_time = now
+    return _regime_cache
 
 def volatility_regime(klines, period=14):
     """Определить режим волатильности (ATR% vs средняя)"""
