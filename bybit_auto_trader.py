@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Bybit BTC Auto Trader v10 - EMA, RSI, MACD, Bollinger, ATR, StochRSI, OI, Funding"""
 import os, time, json, hashlib, hmac, urllib.request, random
+from logger import log_trade, log_signal, log_error, log_status
 import yaml
 from datetime import datetime, timedelta, timezone
 
