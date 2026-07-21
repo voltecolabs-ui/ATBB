@@ -113,7 +113,7 @@ def manage_trailing_stop(positions, analysis, state):
     multiplier = TRAILING["regime_multiplier"].get(regime_name, 1.0)
     
     atr_val = analysis.get('atr') or 200
-    state = load_state()
+    
     
     for p in positions:
         entry = p['entry']
@@ -834,7 +834,7 @@ def main():
     analysis = analyze()
     if not analysis: print('❌ Ошибка анализа'); return
     positions = get_positions()
-    manage_trailing_stop(positions, analysis)
+    manage_trailing_stop(positions, analysis, state)
     balance = get_balance()
     if not balance: print('❌ Ошибка баланса'); return
 
