@@ -82,10 +82,10 @@ def get_open_interest():
     return 0
 
 def get_dxy():
-    """Получить индекс доллара (DXY) через прокси — полная формула"""
+    """Получить индекс доллара (DXY) через бесплатный API — полная формула"""
     try:
         req = urllib.request.Request(
-            "https://api.exchangerate.host/latest?base=USD&symbols=EUR,GBP,JPY",
+            "https://open.er-api.com/v6/latest/USD",
             headers={"User-Agent": "Mozilla/5.0"}
         )
         with urllib.request.urlopen(req, timeout=10) as r:
