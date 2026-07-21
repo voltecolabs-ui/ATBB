@@ -683,6 +683,8 @@ def signal(analysis, positions, state):
 
     # === РЕЖИМНЫЙ ФИЛЬТР ===
     regime = load_regime()
+    if regime is None:
+        return {"action": "WAIT", "reason": "Regime не загружен (устарел >6ч)"}
     if regime["allowed_direction"] not in ["LONG", "SHORT", "BOTH"] or regime["regime"] in ["NEUTRAL", "RANGE", "STRONG_BEAR"]:
         reg_name = regime["regime"]
         reg_dir = regime["allowed_direction"]
