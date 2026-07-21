@@ -97,7 +97,7 @@ try:
 except (IOError, OSError, KeyError):
     pass
 
-def manage_trailing_stop(positions, analysis):
+def manage_trailing_stop(positions, analysis, state):
     """Гибридный Trailing Stop + TP с regime multiplier"""
     if not positions or not analysis or not TRAILING["enabled"]:
         return
