@@ -941,7 +941,7 @@ def main():
                 if qty >= 0.001: result = place_order(side, qty)
             if result.get('retCode') == 0:
                 print(f'✅ Ордер! ID: {result["result"].get("orderId")}')
-                log_trade("OPEN", {"side": side, "qty": qty, "price": sig["entry"], "sl": sig.get("sl"), "tp": sig.get("tp"), "action": sig["action"]})
+                log_trade("OPEN", {"side": side, "qty": qty, "price": sig["entry"], "sl": sig.get("sl"), "tp": sig.get("tp")})
                 time.sleep(1)
                 tp_sl = set_trading_stop(sl=sig['sl'], tp=sig['tp'])
                 if tp_sl.get('retCode') == 0: print(f'✅ TP/SL установлен!')
