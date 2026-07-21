@@ -82,7 +82,7 @@ def get_open_interest():
     return 0
 
 def get_dxy():
-    """Получить индекс доллара (DXY) через прокси"""
+    """Получить индекс доллара (DXY) через прокси — полная формула"""
     try:
         req = urllib.request.Request(
             "https://api.exchangerate.host/latest?base=USD&symbols=EUR,GBP,JPY",
@@ -91,9 +91,11 @@ def get_dxy():
         with urllib.request.urlopen(req, timeout=10) as r:
             data = json.loads(r.read().decode())
             if data.get("rates"):
-                # Упрощённый расчёт DXY (евро весит ~57%)
                 eur = data["rates"].get("EUR", 1)
-                dxy = 50.14348112 / (eur ** 0.576)  # Формула DXY
+                gbp = data["rates"].get("GBP", 1)
+                jpy = data["rates"].get("JPY", 1)
+                # Полная формула DXY: 50.14 x EUR^(-0.576) x JPY^(0.136) x GBP^(-0.119)
+                dxy = 50.14348112 * (eur ** -0.576) * (jpy ** 0.136) * (gbp ** -0.119)
                 return round(dxy, 2)
     except Exception as e:
         print(f"  [DXY error] {e}")
