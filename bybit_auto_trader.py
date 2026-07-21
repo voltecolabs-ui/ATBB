@@ -12,7 +12,7 @@ def load_config():
     try:
         with open(CONFIG_FILE, "r") as f:
             return yaml.safe_load(f)
-    except (IOError, OSError, yaml.YAMLError):
+    except (ValueError, TypeError, OSError):
         return {}
 STATE_FILE = os.path.join(HERMES_HOME, 'workspace', 'trading_state.json')
 REGIME_FILE = os.path.join(HERMES_HOME, 'workspace', 'market_regime.json')
@@ -469,7 +469,7 @@ def count_recent_losses(trades, limit=10):
                 return losses  # Еще на cooldown
             else:
                 return 0  # Cooldown прошел, можно торговать
-        except (IOError, OSError, yaml.YAMLError):
+        except (ValueError, TypeError, OSError):
             return losses
     
     return losses
